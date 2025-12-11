@@ -6,10 +6,14 @@ from langchain_classic.agents import create_tool_calling_agent, AgentExecutor
 from ..tools.CryptoPrice import (
     get_crypto_price,
     get_crypto_price_by_date,
-    get_crypto_price_percentage_change
+    get_crypto_price_percentage_change,
+    resolve_asset,
+    get_crypto_history
 )
 
+from ..tools.ResolveDateRange import resolve_date_range, get_today_date
 from ..tools.GreetUser import greet_user
+from ..tools.TimeIntervalsParse import resolve_human_interval
 
 load_dotenv()
 
@@ -26,7 +30,12 @@ tools = [
     greet_user,
     get_crypto_price,
     get_crypto_price_by_date,
-    get_crypto_price_percentage_change
+    get_crypto_price_percentage_change,
+    resolve_asset,
+    get_crypto_history,
+    resolve_human_interval,
+    resolve_date_range,
+    get_today_date
 ]
 
 model_with_tools = model.bind_tools(tools)

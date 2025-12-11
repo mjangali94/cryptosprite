@@ -4,10 +4,8 @@ from typing import Optional
 import requests
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
-from utils.asset_symbols import asset_symbols
-from utils.date_resolve import resolve_date
-
-
+from utils.asset_symbols import (asset_symbols,
+                                 resolve_asset_symbol)
 
 
 class CryptoPrice(BaseModel):
@@ -83,4 +81,52 @@ def get_crypto_price_percentage_change(symbol:str, currency: str = "USD"):
 
 
 
-    
+
+class ResolveSymbolInput(BaseModel):
+    query: str = Field(..., description="User query containing asset name or symbol")
+
+@tool(args_schema=ResolveSymbolInput)
+def resolve_asset(query: str):
+    """
+    Resolves any crypto query into a clean symbol + CoinGecko ID.
+    Supports: tickers, full names, misspellings, partial matches, natural language.
+    """
+    return resolve_asset_symbol(query)
+
+
+
+class CryptoHistory(BaseModel):
+    interval: str = Field(..., description="minutes, hours, days, months")
+    symbol: str = Field(..., description="Crypto symbol like BTC")
+    amount: int = Field(..., description="Number of units (e.g. 30 days, 6 months)")
+
+
+@tool(args_schema=CryptoHistory)
+def get_crypto_history(interval: str, symbol: str, amount: int):
+    """
+    Fetch historical crypto data with flexible intervals.
+    """
+    url = f"http://127.0.0.1:8000/api/crypto_history/{interval}/{symbol}/{amount}"
+    resp = requests.get(url)
+    data = resp.json()
+
+    if "error" in data:
+        return data["error"]
+
+    history = data["history"]
+
+    start = history[0]["price"]
+    end = history[-1]["price"]
+    perc = ((end - start) / start) * 100
+
+    direction = "📈 up" if perc >= 0 else "📉 down"
+
+    summary = (
+        f"{symbol.upper()} over last {amount} {interval} is {direction} "
+        f"{abs(perc):.2f}%. Start: ${start:.2f}, End: ${end:.2f}."
+    )
+
+    return {
+        "summary": summary,
+        "history": history
+    }

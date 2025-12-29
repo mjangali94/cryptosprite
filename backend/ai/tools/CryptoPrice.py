@@ -1,124 +1,142 @@
 import datetime
-from typing import Optional
+from typing import Optional, Dict, Any
 
 import requests
 from langchain_core.tools import tool
-from pydantic import BaseModel, Field
-from utils.asset_symbols import (asset_symbols,
-                                 resolve_asset_symbol)
+from pydantic import BaseModel, Field, validator
+
+from utils.asset_symbols import resolve_asset_symbol
 
 
+API_BASE_URL = "http://127.0.0.1:8000/api"
+REQUEST_TIMEOUT = 10
+
+
+# ------------------------- Helpers -------------------------
+def fetch_api(endpoint: str) -> Dict[str, Any]:
+    """Generic API request handler with safe error handling."""
+    url = f"{API_BASE_URL}/{endpoint}"
+    try:
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
+        response.raise_for_status()
+        data = response.json()
+
+        if "error" in data:
+            return {"error": data["error"]}
+
+        return data
+
+    except requests.exceptions.ConnectionError:
+        return {"error": "❌ Could not connect to backend API."}
+
+    except requests.exceptions.Timeout:
+        return {"error": "⏳ API request timed out."}
+
+    except requests.exceptions.HTTPError as e:
+        return {"error": f"❌ API returned error: {str(e)}"}
+
+    except Exception:
+        return {"error": "❌ Unexpected error while fetching crypto data."}
+
+
+# ------------------------- Schemas -------------------------
 class CryptoPrice(BaseModel):
-    symbol: str = Field(..., description="The symbol of the crypto asset.")
-    currency: str = Field("USD", description="Currency to quote in, default USD")
-    
-
-@tool(args_schema=CryptoPrice)
-def get_crypto_price(symbol: str, currency: str = "USD"):
-    """
-    Fetch crypto price from your backend API.
-    It also considers different currency pairs.
-    Returns a clean human-readable text summary.
-    """
-
-    url = f"http://127.0.0.1:8000/api/crypto_price/{symbol.upper()}/{currency.lower()}"
-    resp = requests.get(url)
-    data = resp.json()
-    if "error" in data:
-        return data["error"]
-    return f"💰 Current price of {data['symbol']}: ${data['price']:,.2f} {currency.upper()}"
-
+    symbol: str = Field(..., description="Crypto symbol like BTC")
+    currency: str = Field("USD", description="Quote currency (default USD)")
 
 
 class CryptoPriceHistorical(BaseModel):
-    symbol: str = Field(..., description="The symbol of the crypto asset.")
-    currency: str = Field("USD", description="Currency to quote in, default USD")
-    date: str = Field("2025-12-01", description="Date of historical price.")
+    symbol: str = Field(..., description="Crypto symbol like BTC")
+    currency: str = Field("USD", description="Quote currency")
+    date: Optional[str] = Field(
+        None,
+        description="Historical date in YYYY-MM-DD. Defaults to today."
+    )
 
-
-@tool(args_schema=CryptoPriceHistorical)
-def get_crypto_price_by_date(symbol: str, currency: str = "USD", date: str = None):
-    """
-    Fetch the price of a cryptocurrency for a specific date from your backend API.
-
-    Args:
-        symbol (str): The symbol of the cryptocurrency (e.g., BTC, ETH).
-        currency (str, optional): The currency to quote in. Defaults to "USD".
-        date (str, optional): The date to fetch the price for in YYYY-MM-DD format.
-
-    Returns:
-        str: A human-readable summary of the cryptocurrency price for the given date,
-             or an error message if the data could not be retrieved.
-    """
-
-    url = f"http://127.0.0.1:8000/api/crypto_price/{symbol.upper()}/{currency}/{date}"
-    resp = requests.get(url)
-    data = resp.json()
-    if "error" in data:
-        return data["error"]
-    return f"💰 Price of {symbol.upper()} on {date}: ${data['price']:,.2f} {currency.upper()}"
-
-
-@tool(args_schema=CryptoPrice)
-def get_crypto_price_percentage_change(symbol:str, currency: str = "USD"):
-    """
-    Fetch today's percentage change for a cryptocurrency from your backend API.
-    """
-    url = f"http://127.0.0.1:8000/api/crypto_price/percentage_change/{symbol.upper()}/{currency}/"
-    resp = requests.get(url)
-    data = resp.json()
-
-    if "error" in data:
-        return data["error"]
-
-    change = data["percentage_change"]
-    name = data["symbol"]
-
-    direction = "📈 increased" if change >= 0 else "📉 decreased"
-
-    return (
-        f"{name.upper()} has {direction} by {abs(change):.2f}% today.")
-
-
+    @validator("date", always=True)
+    def default_today(cls, value):
+        return value or datetime.date.today().isoformat()
 
 
 class ResolveSymbolInput(BaseModel):
-    query: str = Field(..., description="User query containing asset name or symbol")
-
-@tool(args_schema=ResolveSymbolInput)
-def resolve_asset(query: str):
-    """
-    Resolves any crypto query into a clean symbol + CoinGecko ID.
-    Supports: tickers, full names, misspellings, partial matches, natural language.
-    """
-    return resolve_asset_symbol(query)
-
+    query: str = Field(..., description="User query: name, ticker, or partial text")
 
 
 class CryptoHistory(BaseModel):
     interval: str = Field(..., description="minutes, hours, days, months")
     symbol: str = Field(..., description="Crypto symbol like BTC")
-    amount: int = Field(..., description="Number of units (e.g. 30 days, 6 months)")
+    amount: int = Field(..., description="Quantity of interval units")
+
+
+# ------------------------- Tools -------------------------
+@tool(args_schema=CryptoPrice)
+def get_crypto_price(symbol: str, currency: str = "USD"):
+    """Fetch latest crypto price."""
+    data = fetch_api(f"crypto_price/{symbol.upper()}/{currency.lower()}")
+
+    if "error" in data:
+        return data["error"]
+
+    return (
+        f"💰 Current price of {data['symbol']}: "
+        f"${data['price']:,.2f} {currency.upper()}"
+    )
+
+
+@tool(args_schema=CryptoPriceHistorical)
+def get_crypto_price_by_date(symbol: str, currency: str, date: str):
+    """Fetch crypto price for a specific date."""
+    data = fetch_api(f"crypto_price/{symbol.upper()}/{currency}/{date}")
+
+    if "error" in data:
+        return data["error"]
+
+    return (
+        f"💰 {symbol.upper()} price on {date}: "
+        f"${data['price']:,.2f} {currency.upper()}"
+    )
+
+
+@tool(args_schema=CryptoPrice)
+def get_crypto_price_percentage_change(symbol: str, currency: str = "USD"):
+    """Fetch today's % change."""
+    data = fetch_api(
+        f"crypto_price/percentage_change/{symbol.upper()}/{currency.lower()}"
+    )
+
+    if "error" in data:
+        return data["error"]
+
+    direction = "📈 increased" if data["percentage_change"] >= 0 else "📉 decreased"
+
+    return (
+        f"{data['symbol'].upper()} has {direction} "
+        f"by {abs(data['percentage_change']):.2f}% today."
+    )
+
+
+@tool(args_schema=ResolveSymbolInput)
+def resolve_asset(query: str):
+    """
+    Resolve any crypto asset query into symbol + ID.
+    Handles names, tickers, partials, and natural language.
+    """
+    return resolve_asset_symbol(query)
 
 
 @tool(args_schema=CryptoHistory)
 def get_crypto_history(interval: str, symbol: str, amount: int):
-    """
-    Fetch historical crypto data with flexible intervals.
-    """
-    url = f"http://127.0.0.1:8000/api/crypto_history/{interval}/{symbol}/{amount}"
-    resp = requests.get(url)
-    data = resp.json()
+    """Fetch historical crypto data."""
+    data = fetch_api(f"crypto_history/{interval}/{symbol}/{amount}")
 
     if "error" in data:
         return data["error"]
 
     history = data["history"]
-
     start = history[0]["price"]
     end = history[-1]["price"]
-    perc = ((end - start) / start) * 100
 
+    perc = ((end - start) / start) * 100
     direction = "📈 up" if perc >= 0 else "📉 down"
 
     summary = (

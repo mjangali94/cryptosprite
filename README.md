@@ -40,6 +40,10 @@ The backend exposes the following REST endpoints:
 | `GET` | `/api/crypto_price/percentage_change/{symbol}/{currency}` | Get the 24-hour price change summary. |
 | `POST` | `/api/crypto_agent` | Send a natural language query (e.g., `"BTC price yesterday"`) to the AI agent. |
 
+
+Test commit - 1
+Test commit - 2
+Test commit - 3
 ---
 
 ## 💡 Future Features

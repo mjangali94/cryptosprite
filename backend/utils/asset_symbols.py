@@ -1,3 +1,4 @@
+# ----------------- Asset Symbols -----------------
 asset_symbols = {
     # Tier 1 — Core
     "BTC": "bitcoin",
@@ -109,47 +110,38 @@ asset_symbols = {
 }
 
 
-# utils/resolve_asset_symbol.py
-
+# ----------------- Asset Resolver -----------------
 import re
 from difflib import get_close_matches
 
-# Reverse map for name → symbol
+# Reverse mapping: CoinGecko name → symbol
 name_to_symbol = {v.lower(): k for k, v in asset_symbols.items()}
 
-# Build a list of all searchable tokens
+# Search index for fuzzy matching
 search_index = list(asset_symbols.keys()) + list(name_to_symbol.keys())
 
 
-def clean_query(q: str):
-    """Normalize user input."""
-    return (
-        q.lower()
-        .strip()
-        .replace("price of", "")
-        .replace("show me", "")
-        .replace("coin", "")
-        .replace("crypto", "")
-        .replace("token", "")
-        .replace("value", "")
-        .replace("usd", "")
-        .replace("$", "")
-        .strip()
-    )
+def clean_query(query: str) -> str:
+    """Normalize user input for matching."""
+    replacements = [
+        "price of", "show me", "coin", "crypto",
+        "token", "value", "usd", "$"
+    ]
+    q = query.lower().strip()
+    for r in replacements:
+        q = q.replace(r, "")
+    return q.strip()
 
 
-def resolve_asset_symbol(query: str):
+def resolve_asset_symbol(query: str) -> dict:
     """
-    Universal symbol resolver.
-    Converts any user query into:
-    - normalized symbol, e.g. "BTC"
-    - full CoinGecko ID, e.g. "bitcoin"
-    - full name, e.g. "Bitcoin"
-
-    Handles tickers, names, synonyms, misspellings, partial matches, etc.
+    Resolve a user query to:
+    - symbol (e.g., BTC)
+    - CoinGecko ID (e.g., bitcoin)
+    - full name (e.g., Bitcoin)
+    Handles tickers, full names, synonyms, partial matches, and minor typos.
     """
-
-    raw = query
+    raw_query = query
     q = clean_query(query)
 
     # Exact match (symbol)
@@ -159,35 +151,29 @@ def resolve_asset_symbol(query: str):
             "symbol": symbol,
             "id": asset_symbols[symbol],
             "name": asset_symbols[symbol].replace("-", " ").title(),
-            "match": "exact-symbol",
+            "match": "exact-symbol"
         }
 
-    # Exact match (full name)
+    # Exact match (name)
     if q in name_to_symbol:
         symbol = name_to_symbol[q]
         return {
             "symbol": symbol,
             "id": asset_symbols[symbol],
             "name": q.title(),
-            "match": "exact-name",
+            "match": "exact-name"
         }
 
-    # Partial match / fuzzy match
+    # Fuzzy match / partial match
     candidates = get_close_matches(q, search_index, n=1, cutoff=0.45)
-
     if candidates:
-        c = candidates[0]
-        # If candidate is symbol (uppercase)
-        if c.upper() in asset_symbols:
-            symbol = c.upper()
-        else:
-            symbol = name_to_symbol.get(c)
-
+        candidate = candidates[0]
+        symbol = candidate.upper() if candidate.upper() in asset_symbols else name_to_symbol.get(candidate)
         return {
             "symbol": symbol,
             "id": asset_symbols[symbol],
             "name": asset_symbols[symbol].replace("-", " ").title(),
-            "match": "fuzzy",
+            "match": "fuzzy"
         }
 
     # Nothing matched
@@ -196,5 +182,5 @@ def resolve_asset_symbol(query: str):
         "id": None,
         "name": None,
         "match": "none",
-        "error": f"Could not resolve crypto symbol from '{raw}'"
+        "error": f"Could not resolve crypto symbol from '{raw_query}'"
     }

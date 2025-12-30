@@ -9,32 +9,34 @@ class IntervalParseInput(BaseModel):
 def resolve_human_interval(interval_str: str):
     """
     Converts human-friendly interval strings to (amount, normalized_interval)
-    Compatible with your existing crypto_history API.
+    Normalizes to hours or days. Compatible with your existing crypto_history API.
     """
     interval_str = interval_str.lower().strip()
-    pattern = r"([\d\.]+)\s*(hour|day|week|month|hours|days|weeks|months)"
-    match = re.match(pattern, interval_str)
-
+    
+    # Match number + unit
+    pattern = r"([\d.]+)\s*(hour|day|week|month)s?"
+    match = re.fullmatch(pattern, interval_str)
+    
     if not match:
         return {"error": f"Invalid interval format: '{interval_str}'"}
-
+    
     amount, unit = match.groups()
     amount = float(amount)
 
-    # Normalize
-    if unit.startswith("hour"):
+    # Normalize to standard units
+    if unit == "hour":
         normalized_unit = "hours"
-    elif unit.startswith("day"):
+    elif unit == "day":
         normalized_unit = "days"
-    elif unit.startswith("week"):
+    elif unit == "week":
         normalized_unit = "days"
-        amount = amount * 7
-    elif unit.startswith("month"):
+        amount *= 7
+    elif unit == "month":
         normalized_unit = "days"
-        amount = amount * 30
+        amount *= 30
     else:
         return {"error": f"Unsupported unit: {unit}"}
-
+    
     return {
         "original": interval_str,
         "amount": amount,

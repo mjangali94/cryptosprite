@@ -1,33 +1,26 @@
 import asyncio
 import datetime
 from typing import Optional
-
 import requests
-from fastapi import APIRouter
 from pydantic import BaseModel
+from fastapi import APIRouter
 from ai.agents.CryptoChat import run_agent
 from utils.asset_symbols import asset_symbols
+from api.models.models import CryptoPrice, AgentChatRequest, AgentChatResponse, CryptoPriceDate
+
+
 
 router = APIRouter()
 
 
-# ----------------- Request / Response Models -----------------
-class AgentRequest(BaseModel):
-    query: str
-
-
-class AgentResponse(BaseModel):
-    result: str
-
-
 # ----------------- Crypto Agent Endpoint -----------------
-@router.post("/api/crypto_agent", response_model=AgentResponse)
-async def call_agent(request: AgentRequest):
+@router.post("/api/crypto_agent")
+async def call_agent(request: AgentChatRequest):
     """
     Call the crypto chat agent asynchronously.
     """
     result = await asyncio.to_thread(run_agent, request.query)
-    return AgentResponse(result=str(result.get("result")))
+    return AgentChatResponse(result=str(result.get("result")))
 
 
 # ----------------- Current Crypto Price -----------------
@@ -48,12 +41,14 @@ async def get_crypto_price(symbol: str, currency: str = "USD"):
         return {"error": f"CoinGecko API error: {response.status_code}"}
 
     data = response.json()[0]
-    return {
-        "symbol": symbol.upper(),
-        "name": name,
-        "price": data.get("current_price"),
-        "currency": currency.lower()
-    }
+
+    return CryptoPrice(
+        symbol=symbol.upper(),
+        name=name,
+        price=data.get("current_price"),
+        currency=currency.lower()
+    )
+
 
 
 # ----------------- Historical Crypto Price -----------------
@@ -83,13 +78,17 @@ async def get_crypto_price_by_date(symbol: str, currency: str = "USD", date: str
     if not market_data:
         return {"error": f"No price data found for {symbol} on {date}"}
 
-    return {
-        "symbol": symbol.upper(),
-        "name": name,
-        "price": market_data["current_price"].get(currency.lower()),
-        "currency": currency.lower(),
-        "date": date
-    }
+
+    return CryptoPriceDate(
+        symbol=symbol.upper(),
+        name=name,
+        price= market_data["current_price"].get(currency.lower()),
+        currency=currency.lower(),
+        date= date
+    )
+
+
+
 
 
 # ----------------- Crypto Price Percentage Change -----------------

@@ -1,49 +1,76 @@
-# 💎 CryptoSprite Dashboard
+# CryptoSprite
 
-A cryptocurrency dashboard enhanced with an **AI Agent** for fetching real-time and historical pricing data through natural language queries.
+## Overview
+CryptoSprite is an AI-powered backend service that provides **multi-dimensional interpretations of real-time crypto market data**.  
+It combines **quantitative market signals** with **contextual information** to help users understand **why the market looks the way it does at a given moment**.
 
----
-
-## ✨ Features
-
-* **Real-time & Historical Prices:** Fetches current and past prices for major assets (e.g., **BTC, ETH, SOL**).
-* **AI Agent Querying:** Supports natural language queries for historical data using custom **LangChain tools**, such as:
-    * `"BTC price yesterday"`
-    * `"ETH price 5 days ago"`
-    * `"Price for Solana last Friday"`
-* **Market Analysis:** Calculates and displays **percentage change** (today vs. yesterday).
-* **Visualization:** Interactive frontend with dedicated price cards and charts powered by **Chart.js**.
-* **Structured API:** Robust **FastAPI** backend integrated with CoinGecko for reliable data.
+CryptoSprite is designed to be **descriptive and explanatory**, not predictive or advisory.
 
 ---
 
-## 💻 Tech Stack
+## Core Idea
+Raw crypto prices lack context. CryptoSprite bridges that gap by:
 
-| Component | Technology |
-| :--- | :--- |
-| **Frontend** | React, Next.js, **Tailwind CSS** |
-| **Backend** | **FastAPI**, Python 3.11 |
-| **AI Agent** | **LangChain** + Custom Tools |
-| **Data Source** | CoinGecko |
-| **Charts** | Chart.js |
+- Fetching real-time market data
+- Extracting key quantitative signals
+- Retrieving relevant contextual information
+- Producing a clear, neutral explanation grounded in data
 
 ---
 
-## 🌐 API Endpoints
-
-The backend exposes the following REST endpoints:
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/crypto_price/{symbol}/{currency}` | Get the current price of a cryptocurrency. |
-| `GET` | `/api/crypto_price/{symbol}/{currency}/{date}` | Get the historical price on a specific date (`YYYY-MM-DD`). |
-| `GET` | `/api/crypto_price/percentage_change/{symbol}/{currency}` | Get the 24-hour price change summary. |
-| `POST` | `/api/crypto_agent` | Send a natural language query (e.g., `"BTC price yesterday"`) to the AI agent. |
+## What CryptoSprite Does
+- Retrieves real-time price and volume data for crypto assets
+- Computes basic technical signals (e.g. price change, volume behavior)
+- Retrieves contextual market information (news, ecosystem updates)
+- Generates structured, human-readable interpretations using an LLM
+- Exposes the result through a clean API
 
 ---
 
-## 💡 Future Features
+## What CryptoSprite Does NOT Do
+- No price prediction or forecasting
+- No trading or investment advice
+- No portfolio management
+- No personalized financial recommendations
 
-* **Relative Date Parsing:** Enhance the AI agent's tool to support more complex relative date strings.
-* **Multi-Period Comparison:** Implement percentage change calculation for weekly, monthly, and yearly periods.
-* **Live Updates:** Integrate **WebSockets** for real-time price streaming to the dashboard.
+---
+
+## Architecture (High-Level)
+
+Request
+  ↓
+Market Data APIs
+  ↓
+Signal Extraction (Deterministic)
+  ↓
+Context Retrieval (RAG)
+  ↓
+Interpretation Layer (LLM with Guardrails)
+  ↓
+API Response
+
+
+---
+
+## Tech Stack
+- **FastAPI** – API framework
+- **LangChain** – LLM orchestration
+- **LLM Provider** – (configurable)
+- **External Market APIs** – real-time crypto data
+- **Vector Store** – contextual retrieval (optional in v1)
+
+---
+
+## Design Principles
+- Separation of deterministic logic and probabilistic reasoning
+- Strict guardrails against advisory or predictive output
+- Explainability over speculation
+- API-first, production-oriented design
+
+---
+
+## Project Status
+CryptoSprite is under active development.  
+Current focus: establishing a solid explanatory core before expanding features.
+
+---

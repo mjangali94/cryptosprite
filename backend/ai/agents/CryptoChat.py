@@ -1,44 +1,62 @@
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
+from langchain_core.prompts import PromptTemplate
 from langchain_classic.agents import create_tool_calling_agent, AgentExecutor
 
-from ..tools.CryptoPrice import get_crypto_price, resolve_asset
+from ..tools.CryptoPrice import get_crypto_price, resolve_asset, get_crypto_history, get_crypto_signals
 
 load_dotenv()
 
-# --- USE OPENAI MODEL ---
+# -----------------------------
+# OPENAI MODEL
+# -----------------------------
 model = ChatOpenAI(
-    model="gpt-4o-mini",   # or "gpt-4.1" or "gpt-4o"
+    model="gpt-4o-mini",  # or "gpt-4.1" or "gpt-4o"
     temperature=0,
 )
 
 # -----------------------------
-# TOOLS FOR V1
+# TOOLS
 # -----------------------------
 tools = [
-    get_crypto_price,   # fetch current crypto price
-    resolve_asset       # resolve symbol from query
+    get_crypto_price,
+    resolve_asset,
+    get_crypto_history,
+    get_crypto_signals,
 ]
 
 model_with_tools = model.bind_tools(tools)
 
 # -----------------------------
-# MINIMAL PROMPT
+# PROMPT
 # -----------------------------
-prompt_text = (
+# Must include all required input variables: 'input', 'tools', 'tool_names', 'agent_scratchpad'
+prompt_template_text = (
     "You are CryptoSprite, an AI assistant that explains the current state of crypto assets. "
     "Use only deterministic data from the tools provided. "
     "Do NOT predict prices or give financial advice. "
-    "Explain the price, volume behavior, and simple signals in plain language."
+    "Explain the price, volume behavior, and simple signals in plain language. "
+    "\n\nUser query: {input}\n\n{agent_scratchpad}"
+)
+
+prompt = PromptTemplate(
+    template=prompt_template_text,
+    input_variables=["input", "tools", "tool_names", "agent_scratchpad"]
+)
+
+# Partially fill in tools for the agent
+prompt = prompt.partial(
+    tools=tools,
+    tool_names=[t.name for t in tools]
 )
 
 # -----------------------------
-# AGENT
+# CREATE AGENT
 # -----------------------------
 agent = create_tool_calling_agent(
     llm=model_with_tools,
     tools=tools,
-    prompt=prompt_text
+    prompt=prompt
 )
 
 agent_executor = AgentExecutor(

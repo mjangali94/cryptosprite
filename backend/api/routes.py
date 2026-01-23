@@ -1,14 +1,10 @@
 import asyncio
-import datetime
 from typing import Optional
 import requests
-from pydantic import BaseModel
 from fastapi import APIRouter
+from api.models.models import CryptoPrice, AgentChatRequest, AgentChatResponse
 from ai.agents.CryptoChat import run_agent
 from utils.asset_symbols import asset_symbols
-from api.models.models import CryptoPrice, AgentChatRequest, AgentChatResponse, CryptoPriceDate
-
-
 
 router = APIRouter()
 
@@ -18,7 +14,9 @@ router = APIRouter()
 async def call_agent(request: AgentChatRequest):
     """
     Call the crypto chat agent asynchronously.
+    This is the placeholder for LLM interpretation of market data.
     """
+    # Offload to thread to avoid blocking
     result = await asyncio.to_thread(run_agent, request.query)
     return AgentChatResponse(result=str(result.get("result")))
 
@@ -50,133 +48,35 @@ async def get_crypto_price(symbol: str, currency: str = "USD"):
     )
 
 
-
-# ----------------- Historical Crypto Price -----------------
-@router.get("/api/crypto_price/{symbol}/{currency}/{date}")
-async def get_crypto_price_by_date(symbol: str, currency: str = "USD", date: str = None):
+# ----------------- Placeholder for multi-dimensional signals -----------------
+@router.get("/api/crypto_signals/{symbol}/{currency}")
+async def get_crypto_signals(symbol: str, currency: str = "USD"):
     """
-    Get historical price info for a crypto asset.
-    Date format: 'YYYY-MM-DD'
-    """
-    name = asset_symbols.get(symbol.upper())
-    if not name:
-        return {"error": f"Symbol '{symbol}' not found"}
-
-    try:
-        formatted_date = datetime.datetime.strptime(date, "%Y-%m-%d").strftime("%d-%m-%Y")
-    except ValueError:
-        return {"error": f"Invalid date format: '{date}'. Use YYYY-MM-DD."}
-
-    url = f"https://api.coingecko.com/api/v3/coins/{name}/history"
-    headers = {"User-Agent": "CryptoSprite/1.0"}
-    response = requests.get(url, params={"date": formatted_date, "localization": "false"}, headers=headers)
-
-    if response.status_code != 200:
-        return {"error": f"CoinGecko API error: {response.status_code}"}
-
-    market_data = response.json().get("market_data")
-    if not market_data:
-        return {"error": f"No price data found for {symbol} on {date}"}
-
-
-    return CryptoPriceDate(
-        symbol=symbol.upper(),
-        name=name,
-        price= market_data["current_price"].get(currency.lower()),
-        currency=currency.lower(),
-        date= date
-    )
-
-
-
-
-
-# ----------------- Crypto Price Percentage Change -----------------
-@router.get("/api/crypto_price/percentage_change/{symbol}/{currency}/")
-async def get_crypto_price_percentage_change(symbol: str, currency: str = "USD"):
-    """
-    Calculate today's % change compared to yesterday using CoinGecko historical data.
+    Compute deterministic signals for the asset:
+    - Price change
+    - Volume behavior
+    Currently minimal; future v1.1 will include more analysis.
     """
     name = asset_symbols.get(symbol.upper())
     if not name:
         return {"error": f"Symbol '{symbol}' not found"}
 
-    url = f"https://api.coingecko.com/api/v3/coins/{name}/history"
-    headers = {"User-Agent": "CryptoSprite/1.0"}
-
-    def fetch_price(date_obj: datetime.date) -> Optional[float]:
-        date_str = date_obj.strftime("%d-%m-%Y")
-        resp = requests.get(url, params={"date": date_str, "localization": "false"}, headers=headers)
-        if resp.status_code != 200:
-            return None
-        market_data = resp.json().get("market_data")
-        return market_data["current_price"].get(currency.lower()) if market_data else None
-
-    today = datetime.date.today()
-    yesterday = today - datetime.timedelta(days=1)
-
-    today_price = fetch_price(today)
-    yesterday_price = fetch_price(yesterday)
-
-    if today_price is None:
-        return {"error": f"No price data for {name} today ({today})"}
-    if yesterday_price is None:
-        return {"error": f"No price data for {name} yesterday ({yesterday})"}
-
-    percentage_change = ((today_price - yesterday_price) / yesterday_price) * 100
-    return {
-        "symbol": symbol.upper(),
-        "name": name,
-        "today_price": today_price,
-        "yesterday_price": yesterday_price,
-        "percentage_change": round(percentage_change, 2)
-    }
-
-
-# ----------------- Crypto History -----------------
-@router.get("/api/crypto_history/{interval}/{symbol}/{amount}")
-async def get_crypto_history(interval: str, symbol: str, amount: int):
-    """
-    Universal crypto history endpoint.
-    Supported intervals: hours, days, months
-    """
-    interval = interval.lower().strip()
-    valid_intervals = ["hours", "days", "months"]
-    if interval not in valid_intervals:
-        return {"error": f"Invalid interval '{interval}'. Use hours/days/months."}
-
-    name = asset_symbols.get(symbol.upper())
-    if not name:
-        return {"error": f"Symbol '{symbol}' not found"}
-
-    # Convert everything to days for CoinGecko API
-    if interval == "hours":
-        days = max(amount / 24, 1 / 24)
-        cg_interval = "hourly"
-    elif interval == "months":
-        days = amount * 30
-        cg_interval = "daily"
-    else:
-        days = amount
-        cg_interval = "daily"
-
-    url = f"https://api.coingecko.com/api/v3/coins/{name}/market_chart"
-    params = {"vs_currency": "usd", "days": days, "interval": cg_interval}
-    headers = {"User-Agent": "CryptoSprite/1.0"}
-
-    resp = requests.get(url, params=params, headers=headers)
+    # Fetch current market data
+    url = "https://api.coingecko.com/api/v3/coins/markets"
+    params = {"vs_currency": currency.lower(), "ids": name}
+    resp = requests.get(url, params=params)
     if not resp.ok:
         return {"error": f"CoinGecko API error: {resp.status_code}"}
+    data = resp.json()[0]
 
-    data = resp.json()
-    history = [{"timestamp": p[0], "price": p[1]} for p in data.get("prices", [])]
+    price = data.get("current_price")
+    price_change_24h = data.get("price_change_percentage_24h")
+    volume = data.get("total_volume")
 
     return {
         "symbol": symbol.upper(),
         "name": name,
-        "interval": interval,
-        "amount": amount,
-        "converted_days": days,
-        "points": len(history),
-        "history": history
+        "price": price,
+        "price_change_24h_percent": price_change_24h,
+        "volume": volume,
     }

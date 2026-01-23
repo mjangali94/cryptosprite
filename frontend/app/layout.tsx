@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "../components/Sidebar"
-import Header from "../components/Header"
+import Sidebar from "../components/Sidebar";
+import Header from "../components/Header";
 
 export const metadata: Metadata = {
-  title: "Crypto trading agent",
-  description: "AI-powered crypto trading assistant",
+  title: "CryptoSprite - AI Crypto Trading Assistant",
+  description: "AI-powered crypto trading assistant for real-time crypto market insights",
 };
 
 export default function RootLayout({
@@ -16,11 +16,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen flex bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <Header />
-        <main className="p-6">{children}</main>
-      </div>
+        <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <Header />
+          <main className="p-6">{children}</main>
+        </div>
       </body>
     </html>
   );

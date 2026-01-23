@@ -1,52 +1,35 @@
 from dotenv import load_dotenv
-from langchain_classic import hub
 from langchain_openai import ChatOpenAI
 from langchain_classic.agents import create_tool_calling_agent, AgentExecutor
 
-from ..tools.CryptoPrice import (
-    get_crypto_price,
-    get_crypto_price_by_date,
-    get_crypto_price_percentage_change,
-    resolve_asset,
-    get_crypto_history
-)
-
-from ..tools.ResolveDateRange import resolve_date_range, get_today_date
-from ..tools.GreetUser import greet_user
-from ..tools.TimeIntervalsParse import resolve_human_interval
+from ..tools.CryptoPrice import get_crypto_price, resolve_asset
 
 load_dotenv()
 
-# --- USE OPENAI MODEL HERE ---
+# --- USE OPENAI MODEL ---
 model = ChatOpenAI(
     model="gpt-4o-mini",   # or "gpt-4.1" or "gpt-4o"
     temperature=0,
 )
 
 # -----------------------------
-# TOOLS
+# TOOLS FOR V1
 # -----------------------------
 tools = [
-    greet_user,
-    get_crypto_price,
-    get_crypto_price_by_date,
-    get_crypto_price_percentage_change,
-    resolve_asset,
-    get_crypto_history,
-    resolve_human_interval,
-    resolve_date_range,
-    get_today_date
+    get_crypto_price,   # fetch current crypto price
+    resolve_asset       # resolve symbol from query
 ]
 
 model_with_tools = model.bind_tools(tools)
 
 # -----------------------------
-# PROMPT
+# MINIMAL PROMPT
 # -----------------------------
-prompt = hub.pull("hwchase17/openai-tools-agent")
-prompt = prompt.partial(
-    tools=tools,
-    tool_names=[t.name for t in tools]
+prompt_text = (
+    "You are CryptoSprite, an AI assistant that explains the current state of crypto assets. "
+    "Use only deterministic data from the tools provided. "
+    "Do NOT predict prices or give financial advice. "
+    "Explain the price, volume behavior, and simple signals in plain language."
 )
 
 # -----------------------------
@@ -55,7 +38,7 @@ prompt = prompt.partial(
 agent = create_tool_calling_agent(
     llm=model_with_tools,
     tools=tools,
-    prompt=prompt
+    prompt=prompt_text
 )
 
 agent_executor = AgentExecutor(
@@ -66,15 +49,18 @@ agent_executor = AgentExecutor(
 )
 
 # -----------------------------
-# RUN
+# RUN AGENT
 # -----------------------------
 def run_agent(query: str):
+    """
+    Run the CryptoSprite agent on a user query.
+    Returns structured explanation using deterministic signals.
+    """
     result = agent_executor.invoke({"input": query})
     return {
         "result": result.get("output")
                   or result.get("output_text")
                   or str(result)
     }
-
 
 __all__ = ["run_agent"]

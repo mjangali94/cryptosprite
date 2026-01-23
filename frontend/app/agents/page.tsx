@@ -5,37 +5,37 @@ import AgentMessage from "../../components/AgentMessage";
 
 export default function AgentsPage() {
   const [messages, setMessages] = useState([
-    { from: "agent", text: "Hello! I’m your crypto trading assistant. How can I help?" }
+    { from: "agent", text: "Hello! I’m your CryptoSprite assistant. How can I help?" }
   ]);
 
   const [input, setInput] = useState("");
 
-async function sendMessage() {
-  if (!input.trim()) return;
+  async function sendMessage() {
+    if (!input.trim()) return;
 
-  const userMsg = { from: "user", text: input };
-  setMessages((m) => [...m, userMsg]);
+    const userMsg = { from: "user", text: input };
+    setMessages((m) => [...m, userMsg]);
 
-  const messageToSend = input;
-  setInput("");
+    const messageToSend = input;
+    setInput("");
 
-  try {
-    const res = await fetch("http://localhost:8000/api/crypto_agent", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: messageToSend }),
-    });
+    try {
+      const res = await fetch("http://localhost:8000/api/crypto_agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: messageToSend }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    const agentMsg = { from: "agent", text: data.result };
-    setMessages((m) => [...m, agentMsg]);
-  } catch (err) {
-    const errorMsg = { from: "agent", text: "Error: Could not reach backend." };
-    setMessages((m) => [...m, errorMsg]);
-    console.error(err);
+      const agentMsg = { from: "agent", text: data.result || "No response from agent." };
+      setMessages((m) => [...m, agentMsg]);
+    } catch (err) {
+      const errorMsg = { from: "agent", text: "❌ Could not reach backend." };
+      setMessages((m) => [...m, errorMsg]);
+      console.error(err);
+    }
   }
-}
 
   return (
     <div className="flex flex-col h-full max-h-[80vh]">
@@ -54,7 +54,7 @@ async function sendMessage() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           className="flex-1 p-3 rounded-xl border border-gray-300 focus:outline-none"
-          placeholder="Ask your crypto agent..."
+          placeholder="Ask your CryptoSprite agent..."
         />
         <button
           onClick={sendMessage}

@@ -48,6 +48,56 @@ async def get_crypto_price(symbol: str, currency: str = "USD"):
     )
 
 
+# ----------------- Crypto History -----------------
+@router.get("/api/crypto_history/{interval}/{symbol}/{amount}")
+async def get_crypto_history(interval: str, symbol: str, amount: int):
+    """
+    Universal crypto history endpoint.
+    Supported intervals: hours, days, months
+    Returns deterministic signals.
+    """
+    interval = interval.lower().strip()
+    valid_intervals = ["hours", "days", "months"]
+    if interval not in valid_intervals:
+        return {"error": f"Invalid interval '{interval}'. Use hours/days/months."}
+
+    name = asset_symbols.get(symbol.upper())
+    if not name:
+        return {"error": f"Symbol '{symbol}' not found"}
+
+    # Convert everything to days for CoinGecko API
+    if interval == "hours":
+        days = max(amount / 24, 1 / 24)
+        cg_interval = "hourly"
+    elif interval == "months":
+        days = amount * 30
+        cg_interval = "daily"
+    else:  # days
+        days = amount
+        cg_interval = "daily"
+
+    url = f"https://api.coingecko.com/api/v3/coins/{name}/market_chart"
+    params = {"vs_currency": "usd", "days": days, "interval": cg_interval}
+    headers = {"User-Agent": "CryptoSprite/1.0"}
+
+    resp = requests.get(url, params=params, headers=headers)
+    if not resp.ok:
+        return {"error": f"CoinGecko API error: {resp.status_code}"}
+
+    data = resp.json()
+    history = [{"timestamp": p[0], "price": p[1]} for p in data.get("prices", [])]
+
+    return {
+        "symbol": symbol.upper(),
+        "name": name,
+        "interval": interval,
+        "amount": amount,
+        "converted_days": days,
+        "points": len(history),
+        "history": history
+    }
+
+
 # ----------------- Placeholder for multi-dimensional signals -----------------
 @router.get("/api/crypto_signals/{symbol}/{currency}")
 async def get_crypto_signals(symbol: str, currency: str = "USD"):

@@ -16,3 +16,7 @@ fastapi
 uvicorn
 pydantic
 langchain-classic
+pytest
+pytest-asyncio
+httpx
+pytest-mock

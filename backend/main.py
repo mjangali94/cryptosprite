@@ -4,6 +4,8 @@ from api.routes import router as api_router
 
 app = FastAPI(title="Crypto Sprite")
 app.include_router(api_router)
+
+
 # ===== CORS SETTINGS =====
 origins = [
     "http://localhost:3000",  # frontend

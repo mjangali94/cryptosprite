@@ -2,7 +2,7 @@ import asyncio
 from typing import Optional
 import requests
 from fastapi import APIRouter
-from api.models.models import CryptoPrice, AgentChatRequest, AgentChatResponse
+from .models.models import CryptoPrice, AgentChatRequest, AgentChatResponse
 from ai.agents.CryptoChat import run_agent
 from utils.asset_symbols import asset_symbols
 
@@ -22,6 +22,7 @@ async def call_agent(request: AgentChatRequest):
 
 
 # ----------------- Current Crypto Price -----------------
+@router.get("/api/crypto_price/{symbol}")
 @router.get("/api/crypto_price/{symbol}/{currency}")
 async def get_crypto_price(symbol: str, currency: str = "USD"):
     """

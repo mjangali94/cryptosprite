@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 from fastapi import FastAPI
-from api.routes import router  # adjust only if your router path differs
+from api.routes import router
 
 # ----------------------------
 # Test App Setup
@@ -18,8 +18,6 @@ async def test_crypto_price_success():
         response = await ac.get("/api/crypto_price/BTC/USD")
     assert response.status_code == 200
     data = response.json()
-    print(data)
-
     assert data["symbol"] == "BTC"
     assert "price" in data
     assert data["currency"] == "usd"
@@ -31,8 +29,6 @@ async def test_crypto_price_default_currency():
         response = await ac.get("/api/crypto_price/BTC")
     assert response.status_code == 200
     data = response.json()
-    print(data)
-
     assert data["symbol"] == "BTC"
     assert data["currency"] == "usd"
 
@@ -43,8 +39,6 @@ async def test_crypto_price_invalid_symbol():
         response = await ac.get("/api/crypto_price/INVALID/USD")
     assert response.status_code == 200
     data = response.json()
-    print(data)
-
     assert "error" in data
 
 # ----------------------------
@@ -56,8 +50,6 @@ async def test_crypto_history_success():
         response = await ac.get("/api/crypto_history/days/BTC/3")
     assert response.status_code == 200
     data = response.json()
-    print(data)
-
     assert data["symbol"] == "BTC"
     assert len(data["history"]) > 0
 
@@ -68,8 +60,6 @@ async def test_crypto_history_invalid_interval():
         response = await ac.get("/api/crypto_history/weeks/BTC/3")
     assert response.status_code == 200
     data = response.json()
-    print(data)
-
     assert "error" in data
 
 
@@ -79,8 +69,6 @@ async def test_crypto_history_invalid_symbol():
         response = await ac.get("/api/crypto_history/days/FAKE/3")
     assert response.status_code == 200
     data = response.json()
-    print(data)
-
     assert "error" in data
 
 
@@ -89,8 +77,6 @@ async def test_crypto_history_response_structure():
     async with AsyncClient(app=app, base_url="http://test") as ac:
         response = await ac.get("/api/crypto_history/days/BTC/2")
     data = response.json()
-    print(data)
-
     assert "history" in data
     assert isinstance(data["history"], list)
     assert "timestamp" in data["history"][0]
@@ -105,8 +91,6 @@ async def test_crypto_signals_success():
         response = await ac.get("/api/crypto_signals/BTC/USD")
     assert response.status_code == 200
     data = response.json()
-    print(data)
-
     assert "price" in data
     assert "volume" in data
     assert "price_change_24h_percent" in data
@@ -118,8 +102,6 @@ async def test_crypto_signals_invalid_symbol():
         response = await ac.get("/api/crypto_signals/FAKE/USD")
     assert response.status_code == 200
     data = response.json()
-    print(data)
-
     assert "error" in data
 
 # ----------------------------
@@ -134,7 +116,5 @@ async def test_crypto_agent_basic():
 
     assert response.status_code == 200
     data = response.json()
-    print(data)
-
     assert "result" in data
     assert isinstance(data["result"], str)

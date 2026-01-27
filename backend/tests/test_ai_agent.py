@@ -1,4 +1,6 @@
 from ai.agents.CryptoChat import run_agent
+from dotenv import load_dotenv
+load_dotenv()
 
 def test_run_agent_basic_query():
     result = run_agent("What's the current price of BTC?")

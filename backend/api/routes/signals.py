@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from api.routes.history import get_crypto_history
 from utils.crypto_assets import resolve_asset_symbol
 
+
 router = APIRouter()
 
 TIMEFRAMES = {
@@ -25,7 +26,7 @@ def calculate_trend(history: list[dict]) -> str:
 
 
 @router.get("/api/crypto_signals/{symbol}/{currency}")
-def get_crypto_signals(symbol: str, currency: str = "USD") -> dict:
+def get_crypto_signals(symbol: str, currency: str = "USDT") -> dict:
     """
     Compute simple signals from historical prices.
     """
@@ -50,7 +51,7 @@ def get_crypto_signals(symbol: str, currency: str = "USD") -> dict:
 
 
 @router.get("/api/crypto_trends/{symbol}")
-def get_crypto_trends(symbol: str, currency: str = "USD") -> dict:
+def get_crypto_trends(symbol: str, currency: str = "USDT") -> dict:
     """
     Compute short, mid, and long term trends using historical prices.
     """

@@ -1,19 +1,9 @@
-# routes/history.py
-import requests
+# api/routes/history.py
 from fastapi import APIRouter
 from utils.crypto_assets import resolve_asset_symbol
+from api.utils.fetch_coinbase import fetch_coinbase
 
 router = APIRouter()
-COINBASE_API_BASE = "https://api.exchange.coinbase.com"
-
-
-def fetch_coinbase(endpoint: str, params: dict = None) -> dict:
-    url = f"{COINBASE_API_BASE}/{endpoint}"
-    resp = requests.get(url, params=params)
-    if not resp.ok:
-        return {"error": f"Coinbase API error {resp.status_code}"}
-    return resp.json()
-
 
 @router.get("/api/crypto_history/{interval}/{symbol}/{amount}")
 def get_crypto_history(interval: str, symbol: str, amount: int, currency: str = "USD") -> dict:
@@ -25,7 +15,12 @@ def get_crypto_history(interval: str, symbol: str, amount: int, currency: str = 
     currency = currency.upper()
     pair = f"{symbol}-{currency}"
 
-    granularity_map = {"hours": 3600, "days": 86400, "months": 86400*30}
+    # Map intervals to Coinbase granularity in seconds
+    granularity_map = {
+        "hours": 3600,
+        "days": 86400,
+        "months": 86400 * 30
+    }
     granularity = granularity_map.get(interval)
     if granularity is None:
         return {"error": f"Invalid interval '{interval}'. Use hours/days/months."}
@@ -43,7 +38,7 @@ def get_crypto_history(interval: str, symbol: str, amount: int, currency: str = 
             "open": c[3],
             "close": c[4],
             "volume": c[5],
-            "price": c[4]  # simplified price for trends
+            "price": c[4]
         }
         for c in data
     ]

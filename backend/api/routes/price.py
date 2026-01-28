@@ -1,20 +1,10 @@
 # routes/price.py
-import requests
 from fastapi import APIRouter
 from utils.crypto_assets import resolve_asset_symbol
 from api.models.models import CryptoPrice
+from api.utils.fetch_coinbase import fetch_coinbase
 
 router = APIRouter()
-COINBASE_API_BASE = "https://api.exchange.coinbase.com"
-
-
-def fetch_coinbase(endpoint: str, params: dict = None) -> dict:
-    url = f"{COINBASE_API_BASE}/{endpoint}"
-    resp = requests.get(url, params=params)
-    if not resp.ok:
-        return {"error": f"Coinbase API error {resp.status_code}"}
-    return resp.json()
-
 
 @router.get("/api/crypto_price/{symbol}")
 @router.get("/api/crypto_price/{symbol}/{currency}")

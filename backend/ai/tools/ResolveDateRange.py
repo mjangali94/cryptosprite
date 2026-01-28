@@ -1,3 +1,4 @@
+# ai/tools/DateTools.py
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 from datetime import datetime, timedelta
@@ -15,8 +16,10 @@ class TodayDateInput(BaseModel):
 class DateParseInput(BaseModel):
     date_str: str = Field(
         ...,
-        description="Human-friendly date or date range "
-                    "(e.g., 'yesterday', '2 weeks ago', 'last month', '2025-01-01')"
+        description=(
+            "Human-friendly date or date range "
+            "(e.g., 'yesterday', '2 weeks ago', 'last month', '2025-01-01')"
+        )
     )
 
 
@@ -41,13 +44,13 @@ def resolve_date_range(date_str: str) -> Union[Dict[str, List[str]], Dict[str, s
     def generate_past_dates(amount: int, unit: str) -> List[str]:
         """Generates a list of past dates including today."""
         if unit == "day":
-            start_date = today - timedelta(days=amount-1)
+            start_date = today - timedelta(days=amount - 1)
             return [(start_date + timedelta(days=i)).isoformat() for i in range(amount)]
         elif unit == "week":
             start_date = today - timedelta(weeks=amount)
             return [(start_date + timedelta(days=i)).isoformat() for i in range((today - start_date).days + 1)]
         elif unit == "month":
-            start_date = today - timedelta(days=amount*30)
+            start_date = today - timedelta(days=amount * 30)
             return [(start_date + timedelta(days=i)).isoformat() for i in range((today - start_date).days + 1)]
         return []
 
@@ -61,7 +64,8 @@ def resolve_date_range(date_str: str) -> Union[Dict[str, List[str]], Dict[str, s
     match_ago = re.search(r"(\d+)\s*(day|week|month)s?\s*ago", date_str_lower)
     if match_ago:
         amount, unit = match_ago.groups()
-        target_date = today - timedelta(days=int(amount) * (30 if unit == "month" else 7 if unit == "week" else 1))
+        delta_days = int(amount) * (30 if unit == "month" else 7 if unit == "week" else 1)
+        target_date = today - timedelta(days=delta_days)
         return {"original": date_str, "dates": [target_date.isoformat()]}
 
     # Relative range: "last X days/weeks/months"

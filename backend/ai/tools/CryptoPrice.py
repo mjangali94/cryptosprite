@@ -2,55 +2,77 @@ import requests
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from utils.crypto_assets import resolve_asset_symbol
-from api.utils.fetch_coinbase import fetch_coinbase
-# -------------------------
-# Coinbase Config
-# -------------------------
+
 COINBASE_API_BASE = "https://api.exchange.coinbase.com"
 REQUEST_TIMEOUT = 8
 
+# -------------------------
+# Coinbase Helper
+# -------------------------
+def fetch_coinbase(endpoint: str, params: dict | None = None) -> dict:
+    url = f"{COINBASE_API_BASE}/{endpoint.lstrip('/')}"
+    try:
+        resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
+        if resp.status_code == 429:
+            return {"error": "Coinbase rate limit exceeded"}
+        resp.raise_for_status()
+        return resp.json()
+    except requests.exceptions.Timeout:
+        return {"error": "Coinbase request timed out"}
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
 
 # -------------------------
 # Domain Functions
 # -------------------------
 def get_spot_price(symbol: str, currency: str) -> dict:
-    """Fetch latest spot price for a given symbol/currency pair."""
     data = fetch_coinbase(f"products/{symbol}-{currency}/ticker")
     if "error" in data:
         return data
-    return {"symbol": symbol, "price": float(data["price"])}
-
+    return {
+        "symbol": symbol,
+        "price": float(data["price"]),
+    }
 
 def get_price_history(symbol: str, currency: str, interval: str, amount: int) -> dict:
-    """Fetch historical prices using Coinbase candles."""
-    granularity_map = {"hours": 3600, "days": 86400, "months": 86400}  # months approximated by daily candles
-    points_map = {"hours": amount, "days": amount, "months": amount * 30}  # months = ~30 days each
-
-    granularity = granularity_map.get(interval)
-    points = points_map.get(interval)
-    if not granularity:
+    if interval == "hours":
+        granularity = 3600
+        points = amount
+    elif interval == "days":
+        granularity = 86400
+        points = amount
+    elif interval == "months":
+        granularity = 86400
+        points = amount * 30
+    else:
         return {"error": "Invalid interval (use hours/days/months)"}
 
-    data = fetch_coinbase(f"products/{symbol}-{currency}/candles", params={"granularity": granularity})
+    data = fetch_coinbase(
+        f"products/{symbol}-{currency}/candles",
+        params={"granularity": granularity},
+    )
     if "error" in data:
         return data
 
     candles = data[:points]
-    candles.reverse()  # oldest → newest
+    candles.reverse()
     history = [{"price": c[4]} for c in candles]
 
-    return {"symbol": symbol, "currency": currency, "interval": interval, "points": len(history), "history": history}
+    return {
+        "symbol": symbol,
+        "currency": currency,
+        "interval": interval,
+        "points": len(history),
+        "history": history,
+    }
 
-
-def compute_trend(prices: list[float]) -> dict:
-    """Compute trend, % change, high, low from a price list."""
+def compute_trend(prices: list[float], symbol: str = "") -> dict:
     if not prices or prices[0] == 0:
-        return {"trend": "unknown", "price_change_percent": 0, "high": 0, "low": 0, "points": 0}
-
+        return {"trend": "unknown"}
     first, last = prices[0], prices[-1]
     change = (last - first) / first * 100
-
     return {
+        "symbol": symbol,
         "trend": "upward" if change > 0 else "downward" if change < 0 else "sideways",
         "price_change_percent": round(change, 2),
         "high": round(max(prices), 2),
@@ -58,87 +80,95 @@ def compute_trend(prices: list[float]) -> dict:
         "points": len(prices),
     }
 
-
 # -------------------------
 # Schemas
 # -------------------------
 class CryptoPrice(BaseModel):
-    symbol: str = Field(..., description="Crypto symbol like BTC")
-    currency: str = Field("USD", description="Quote currency")
-
+    symbol: str
+    currency: str = "USD"
 
 class ResolveSymbolInput(BaseModel):
-    query: str = Field(..., description="Asset name or ticker")
-
+    query: str
 
 class CryptoHistoryInput(BaseModel):
-    interval: str = Field(..., description="hours, days, months")
-    symbol: str = Field(..., description="Crypto symbol")
-    amount: int = Field(..., description="Number of points")
-
+    interval: str = Field(default="days")
+    symbol: str
+    amount: int = Field(default=3)
 
 class CryptoTrendInput(BaseModel):
-    symbol: str = Field(..., description="Crypto symbol")
-
+    symbol: str
 
 # -------------------------
 # Tools
 # -------------------------
 @tool(args_schema=CryptoPrice, return_direct=True)
 def get_crypto_price(symbol: str, currency: str = "USD"):
-    """Latest spot price (Coinbase direct)."""
+    """Latest spot price of a cryptocurrency."""
+    if not symbol:
+        return "❌ Symbol not provided"
     result = get_spot_price(symbol.upper(), currency.upper())
     if "error" in result:
         return f"❌ Price fetch failed: {result['error']}"
     return f"💰 {result['symbol']} price: ${result['price']:,.2f} {currency.upper()}"
 
-
 @tool(args_schema=ResolveSymbolInput, return_direct=True)
 def resolve_asset(query: str):
-    """Resolve asset name to symbol."""
-    return resolve_asset_symbol(query)
-
-
-@tool(args_schema=CryptoHistoryInput, return_direct=True)
-def get_crypto_history(interval: str, symbol: str, amount: int):
-    """Historical prices (Coinbase candles)."""
-    return get_price_history(symbol.upper(), "USD", interval, amount)
-
+    """Resolve asset name to symbol (dict for tests)."""
+    if not query:
+        return {"symbol": None, "id": None, "name": None, "match": "none", "error": "Query not provided"}
+    result = resolve_asset_symbol(query)
+    if result.get("symbol"):
+        return result
+    return {"symbol": None, "id": None, "name": None, "match": "none", "error": f"Could not resolve crypto symbol from '{query}'"}
 
 @tool(args_schema=CryptoHistoryInput, return_direct=True)
-def get_crypto_signals(interval: str, symbol: str, amount: int):
-    """Compute trend signal for a given interval."""
+def get_crypto_history(interval: str = "days", symbol: str = "", amount: int = 3):
+    """Return historical prices (dict for tests)."""
+    if not symbol:
+        return {"error": "Symbol not provided"}
     data = get_price_history(symbol.upper(), "USD", interval, amount)
     if "error" in data:
-        return data
-    prices = [p["price"] for p in data["history"]]
-    return compute_trend(prices)
+        return {"error": data["error"]}
+    return data
 
+@tool(args_schema=CryptoHistoryInput, return_direct=True)
+def get_crypto_signals(interval: str = "days", symbol: str = "", amount: int = 3):
+    """Compute trend signal (dict for tests)."""
+    if not symbol:
+        return {"error": "Symbol not provided"}
+    data = get_price_history(symbol.upper(), "USD", interval, amount)
+    if "error" in data:
+        return {"error": data["error"]}
+    prices = [p["price"] for p in data.get("history", [])]
+    trend = compute_trend(prices, symbol.upper())
+    return trend
 
 @tool(args_schema=CryptoTrendInput, return_direct=True)
 def get_crypto_trends_tool(symbol: str):
-    """
-    Return trends with explicit timeframes:
-    - short_term: last 12 hours
-    - mid_term: last 14 days
-    - long_term: last ~12 months
-    """
+    """Return trends with headers for tests (Short Term, Mid Term, Long Term)."""
+    if not symbol:
+        return "❌ Symbol not provided"
     symbol = symbol.upper()
     trends = {}
-
     configs = {
-        "short_term": ("hours", 12),
-        "mid_term": ("days", 14),
-        "long_term": ("months", 12),
+        "short_term": ("hours", 12, "Short Term (Last 12 hours)"),
+        "mid_term": ("days", 14, "Mid Term (Last 14 days)"),
+        "long_term": ("months", 12, "Long Term (Last ~12 months)"),
     }
 
-    for name, (interval, amount) in configs.items():
+    for name, (interval, amount, label) in configs.items():
         data = get_price_history(symbol, "USD", interval, amount)
         if "error" in data:
-            trends[name] = {"trend": "unknown", "timeframe": None}
-            continue
-        prices = [p["price"] for p in data["history"]]
-        trends[name] = compute_trend(prices)
-        trends[name]["timeframe"] = f"{amount} {interval}" if interval != "months" else f"~{amount} months"
+            trends[name] = {"trend": "unknown", "price_change_percent": 0, "high": 0, "low": 0, "points": 0, "label": label}
+        else:
+            prices = [p["price"] for p in data.get("history", [])]
+            trends[name] = compute_trend(prices, symbol)
+            trends[name]["label"] = label
 
-    return trends
+    formatted = [
+        f"{trends[k]['label']}: {trends[k]['trend']} "
+        f"(change {trends[k]['price_change_percent']}%, high {trends[k]['high']}, low {trends[k]['low']})"
+        for k in ["short_term", "mid_term", "long_term"]
+    ]
+
+    return f"Trends for {symbol}:\n" + "\n".join(formatted)

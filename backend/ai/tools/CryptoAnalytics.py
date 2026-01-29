@@ -87,7 +87,7 @@ def get_market_summary(symbols: list[str], interval: str = "days", amount: int =
     for sym in symbols:
         price_data = get_price_history(sym.upper(), "USD", interval, amount)
         vol_data = get_volume_history(sym.upper(), "USD", interval, amount)
-        prices = [p["price"] for p in price_data.get("history", [])]
+        prices = [p["close"] for p in price_data.get("history", [])]
         vols = [v["volume"] for v in vol_data.get("history", [])]
         trend = compute_trend(prices, sym.upper())["trend"] if prices else "unknown"
         avg_volume = round(sum(vols)/len(vols),2) if vols else 0
@@ -101,7 +101,7 @@ def detect_top_movers(symbols: list[str], interval: str = "days", amount: int = 
     """Detect coins with highest percentage gains/losses."""
     changes = []
     for sym in symbols:
-        prices = [p["price"] for p in get_price_history(sym.upper(), "USD", interval, amount).get("history", [])]
+        prices = [p["close"] for p in get_price_history(sym.upper(), "USD", interval, amount).get("history", [])]
         if not prices: continue
         change = (prices[-1]-prices[0])/prices[0]*100 if prices[0] != 0 else 0
         changes.append((sym.upper(), round(change,2)))
@@ -114,7 +114,7 @@ def correlate_price_volume(symbol: str, interval: str = "days", amount: int = 7)
     """Explain how volume changes correlate with price changes."""
     price_data = get_price_history(symbol.upper(), "USD", interval, amount)
     vol_data = get_volume_history(symbol.upper(), "USD", interval, amount)
-    prices = [p["price"] for p in price_data.get("history",[])]
+    prices = [p["close"] for p in price_data.get("history",[])]
     vols = [v["volume"] for v in vol_data.get("history",[])]
     if not prices or not vols:
         return f"No data available for {symbol.upper()}"
@@ -126,7 +126,7 @@ def detect_percentage_change(symbols: list[str], threshold: float = 5.0, interva
     """Highlight coins with changes above threshold."""
     alerts = []
     for sym in symbols:
-        prices = [p["price"] for p in get_price_history(sym.upper(), "USD", interval, amount).get("history",[])]
+        prices = [p["close"] for p in get_price_history(sym.upper(), "USD", interval, amount).get("history",[])]
         if not prices: continue
         change = (prices[-1]-prices[0])/prices[0]*100 if prices[0] != 0 else 0
         if abs(change) >= threshold:
@@ -138,7 +138,7 @@ def detect_percentage_change(symbols: list[str], threshold: float = 5.0, interva
 @tool(args_schema=VolatilityOverviewInput, return_direct=True)
 def get_volatility(symbol: str, interval: str = "days", amount: int = 7):
     """Summarize volatility of a coin."""
-    prices = [p["price"] for p in get_price_history(symbol.upper(), "USD", interval, amount).get("history",[])]
+    prices = [p["close"] for p in get_price_history(symbol.upper(), "USD", interval, amount).get("history",[])]
     if not prices: return f"No price data for {symbol.upper()}"
     high, low = max(prices), min(prices)
     change = (prices[-1]-prices[0])/prices[0]*100 if prices[0]!=0 else 0
@@ -152,7 +152,7 @@ def get_volatility(symbol: str, interval: str = "days", amount: int = 7):
 @tool(args_schema=MovingAverageInput, return_direct=True)
 def get_moving_average(symbol: str, short_term: int = 7, mid_term: int = 14, interval: str = "days"):
     """Calculate moving averages and summarize."""
-    prices = [p["price"] for p in get_price_history(symbol.upper(), "USD", interval, mid_term).get("history",[])]
+    prices = [p["close"] for p in get_price_history(symbol.upper(), "USD", interval, mid_term).get("history",[])]
     if not prices: return f"No data for {symbol.upper()}"
     short_avg = calculate_moving_average(prices, short_term)
     mid_avg = calculate_moving_average(prices, mid_term)
@@ -167,7 +167,7 @@ def get_historical_performance(symbol: str, intervals: list[str] = ["hours","day
     """Summarize historical performance over multiple intervals."""
     output = []
     for interval, amount in zip(intervals, amounts):
-        prices = [p["price"] for p in get_price_history(symbol.upper(), "USD", interval, amount).get("history",[])]
+        prices = [p["close"] for p in get_price_history(symbol.upper(), "USD", interval, amount).get("history",[])]
         trend = compute_trend(prices, symbol.upper())["trend"] if prices else "unknown"
         output.append(f"{interval.capitalize()} ({amount}): {trend} trend")
     return f"{symbol.upper()} Historical Performance:\n" + "\n".join(output)
@@ -179,7 +179,7 @@ def compare_coins(symbols: list[str], interval: str = "days", amount: int = 7):
     for sym in symbols:
         price_data = get_price_history(sym.upper(), "USD", interval, amount)
         vol_data = get_volume_history(sym.upper(), "USD", interval, amount)
-        prices = [p["price"] for p in price_data.get("history",[])]
+        prices = [p["close"] for p in price_data.get("history",[])]
         vols = [v["volume"] for v in vol_data.get("history",[])]
         trend = compute_trend(prices, sym.upper())["trend"] if prices else "unknown"
         avg_vol = round(sum(vols)/len(vols),2) if vols else 0

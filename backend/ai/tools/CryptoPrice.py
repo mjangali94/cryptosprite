@@ -59,8 +59,17 @@ def get_price_history(symbol: str, currency: str, interval: str, amount: int) ->
 
     candles = data[:points]
     candles.reverse()
-    history = [{"price": c[4]} for c in candles]
-
+    history = [
+        {
+            "time": c[0],
+            "low": c[1],
+            "high": c[2],
+            "open": c[3],
+            "close": c[4],
+            "volume": c[5],
+        }
+        for c in candles
+    ]
     return {
         "symbol": symbol,
         "currency": currency,
@@ -142,7 +151,7 @@ def get_crypto_signals(interval: str = "days", symbol: str = "", amount: int = 3
     data = get_price_history(symbol.upper(), "USD", interval, amount)
     if "error" in data:
         return {"error": data["error"]}
-    prices = [p["price"] for p in data.get("history", [])]
+    prices = [p["close"] for p in data.get("history", [])]
     trend = compute_trend(prices, symbol.upper())
     return trend
 
@@ -164,7 +173,7 @@ def get_crypto_trends_tool(symbol: str):
         if "error" in data:
             trends[name] = {"trend": "unknown", "price_change_percent": 0, "high": 0, "low": 0, "points": 0, "label": label}
         else:
-            prices = [p["price"] for p in data.get("history", [])]
+            prices = [p["close"] for p in data.get("history", [])]
             trends[name] = compute_trend(prices, symbol)
             trends[name]["label"] = label
 

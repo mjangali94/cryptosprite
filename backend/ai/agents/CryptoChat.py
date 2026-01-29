@@ -34,7 +34,8 @@ from ..tools.CryptoAnalytics import (
 )
 from ..tools.ResolveDateRange import resolve_date_range, get_today_date
 from ..tools.TimeIntervalsParse import resolve_human_interval
-from ..tools.TradingStrategies import all_strategy_tools
+from ..tools.TechnicalStrategies import all_strategy_tools
+from ..tools.PriceActionStrategies import all_price_action_tools
 
 load_dotenv()
 
@@ -75,6 +76,7 @@ tools = [
     get_historical_performance,
     compare_coins,
     *all_strategy_tools,
+    *all_price_action_tools,
 ]
 
 # -----------------------------

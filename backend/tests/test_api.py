@@ -5,8 +5,10 @@ from api.routes.price import router as price_router
 from api.routes.history import router as history_router
 from api.routes.signals import router as signals_router
 from api.routes.agent import router as agent_router
-
+from ai.agents.CryptoChat import run_agent
 from utils.crypto_assets import asset_symbols
+
+
 
 # ----------------------------
 # Test App Setup
@@ -138,7 +140,6 @@ async def test_crypto_trends_success():
 # ----------------------------
 # Crypto Agent Tests
 # ----------------------------
-from ai.agents.CryptoChat import run_agent
 
 @pytest.mark.asyncio
 async def test_crypto_agent_basic():
@@ -158,10 +159,6 @@ async def test_crypto_agent_signals_and_trends():
     assert isinstance(output, str)
     # Should mention trend keywords
     assert any(word in output.lower() for word in ["upward", "downward", "sideways"])
-
-
-import pytest
-from ai.agents.CryptoChat import run_agent
 
 
 @pytest.mark.asyncio

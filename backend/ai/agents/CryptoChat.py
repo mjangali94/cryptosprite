@@ -9,10 +9,33 @@ from ..tools.CryptoPrice import (
     get_crypto_history,
     get_crypto_signals,
     get_crypto_trends_tool,
+    compare_crypto_trends,
+)
+
+from ..tools.CryptoVolume import (
+    get_crypto_volume,
+    get_crypto_volume_history,
+    compare_crypto_volumes,
+    get_crypto_average_volume,
+    detect_volume_spikes,
+    compare_average_volumes,
+)
+
+from ..tools.CryptoAnalytics import (
+    get_market_summary,
+    detect_top_movers,
+    correlate_price_volume,
+    detect_percentage_change,
+    get_volatility,
+    get_moving_average,
+    get_historical_performance,
+    compare_coins,
 )
 
 from ..tools.ResolveDateRange import resolve_date_range, get_today_date
 from ..tools.TimeIntervalsParse import resolve_human_interval
+
+
 load_dotenv()
 
 # -----------------------------
@@ -36,6 +59,21 @@ tools = [
     get_today_date,
     resolve_date_range,
     resolve_human_interval,
+    compare_crypto_trends,
+    compare_crypto_volumes,
+    get_crypto_volume,
+    get_crypto_volume_history,
+    get_crypto_average_volume,
+    detect_volume_spikes,
+    compare_average_volumes,
+    get_market_summary,
+    detect_top_movers,
+    correlate_price_volume,
+    detect_percentage_change,
+    get_volatility,
+    get_moving_average,
+    get_historical_performance,
+    compare_coins,
 ]
 
 model_with_tools = model.bind_tools(tools)

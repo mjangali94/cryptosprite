@@ -1,7 +1,10 @@
+from typing import List
+
 import requests
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from utils.crypto_assets import resolve_asset_symbol
+
 
 COINBASE_API_BASE = "https://api.exchange.coinbase.com"
 REQUEST_TIMEOUT = 8
@@ -172,3 +175,80 @@ def get_crypto_trends_tool(symbol: str):
     ]
 
     return f"Trends for {symbol}:\n" + "\n".join(formatted)
+
+
+
+# -------------------------
+# Schema
+# -------------------------
+class MultiCryptoInput(BaseModel):
+    symbols: List[str] = Field(..., description="List of cryptocurrency symbols")
+    interval: str = Field("days", description="Interval: hours/days/months")
+    amount: int = Field(7, description="Number of intervals to fetch")
+
+# -------------------------
+# Tool
+# -------------------------
+@tool(args_schema=MultiCryptoInput, return_direct=True)
+def compare_crypto_trends(symbols: List[str], interval: str = "days", amount: int = 7):
+    """
+    Generate a natural language summary for N cryptocurrencies.
+
+    Args:
+        symbols: list of symbols like ['BTC', 'ETH', 'SOL']
+        interval: granularity for trend analysis ('hours', 'days', 'months')
+        amount: number of intervals to fetch
+    Returns:
+        str: human-readable summary
+    """
+    from ai.agents.CryptoChat import run_agent
+    summaries = []
+    trend_data = {}
+
+    # Step 1: fetch current prices and trends
+    for symbol in symbols:
+        # Get current price
+        price_result = run_agent(f"Get current price for {symbol}")
+        price_str = price_result.get("result", f"{symbol} price unavailable")
+
+        # Get trends (short, mid, long) via the trend tool
+        trends_result = run_agent(f"Get trends for {symbol}")
+        trends_str = trends_result.get("result", "")
+
+        trend_data[symbol] = {
+            "price": price_str,
+            "trends": trends_str
+        }
+
+    # Step 2: Build human-readable summary for each coin
+    for symbol, data in trend_data.items():
+        summary = [f"### {symbol}\n"]
+        summary.append(f"1. **Current Price**: {data['price']}\n")
+        summary.append(f"2. **Historical Trends**:\n{data['trends']}\n")
+
+        # Optional: parse trends_str to determine trend direction (simplified)
+        if "upward" in data['trends'].lower():
+            trend_dir = "rising"
+        elif "downward" in data['trends'].lower():
+            trend_dir = "falling"
+        else:
+            trend_dir = "sideways"
+        summary.append(f"3. **Trend Direction**: {symbol} is currently **{trend_dir}**.\n")
+
+        summaries.append("\n".join(summary))
+
+    # Step 3: Overall summary
+    overall = ["### Summary Comparison\n"]
+    for symbol, data in trend_data.items():
+        # Extract the short-term trend direction for simplicity
+        if "upward" in data['trends'].lower():
+            overall.append(f"- {symbol} is currently rising.")
+        elif "downward" in data['trends'].lower():
+            overall.append(f"- {symbol} is currently falling.")
+        else:
+            overall.append(f"- {symbol} is moving sideways.")
+
+    summaries.append("\n".join(overall))
+
+    return "\n---\n".join(summaries)
+

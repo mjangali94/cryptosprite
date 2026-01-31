@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from ai.schemas.price import CryptoHistoryInput, CryptoTrendInput, MultiCryptoInput
 from ai.services.domain_functions import get_price_history, compute_trend
-from ai.tools.volume import get_volume_history
+from ai.domain_functions.volume import get_volume_history
 
 
 def calculate_moving_average(prices: list[float], period: int) -> float:

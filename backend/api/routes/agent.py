@@ -1,8 +1,7 @@
 # api/routes/agent.py
 from fastapi import APIRouter
 from pydantic import BaseModel
-from ai.agents.CryptoChat import run_agent
-
+from ai.agents.CryptoAgent import run_agent
 router = APIRouter(prefix="/api", tags=["agent"])
 
 

@@ -1,4 +1,4 @@
-# backend/ai/agents/CryptoChat.py
+# backend/ai/agents/CryptoAgent.py
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI

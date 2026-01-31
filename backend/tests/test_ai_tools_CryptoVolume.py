@@ -2,7 +2,7 @@
 
 import time
 import pytest
-from ai.tools.CryptoVolume import (
+from ai.tools.volume import (
     get_crypto_volume,
     get_crypto_volume_history,
     compare_crypto_volumes,

@@ -1,5 +1,5 @@
 import pytest
-from ai.tools.CryptoAnalytics import (
+from ai.tools.technical_analysis import (
     get_market_summary,
     detect_top_movers,
     correlate_price_volume,

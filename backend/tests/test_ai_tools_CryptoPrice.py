@@ -1,12 +1,12 @@
 import time
 import pytest
-from ai.tools.CryptoPrice import (
+from ai.tools.price import (
     get_crypto_price,
     get_crypto_history,
-    get_crypto_signals,
     resolve_asset,
-    get_crypto_trends_tool,
 )
+from ai.tools.technical_analysis import get_crypto_signals, get_crypto_trends_tool
+
 
 # -----------------------------
 # Basic single-coin tests

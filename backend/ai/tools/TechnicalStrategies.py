@@ -3,7 +3,7 @@ from typing import List, Dict
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from utils.crypto_assets import resolve_asset_symbol
-from ai.tools.CryptoPrice import get_price_history, compute_trend, get_spot_price
+from ai.services.domain_functions import get_spot_price, get_price_history, compute_trend
 import math
 
 # -----------------------------

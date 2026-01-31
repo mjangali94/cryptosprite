@@ -1,7 +1,8 @@
 # backend/ai/tools/TradingStrategiesTools.py
 from typing import List, Dict
 from langchain_core.tools import tool
-from ai.tools.CryptoPrice import get_price_history  # Use your existing fetcher
+from ai.services.domain_functions import get_price_history
+
 
 # -----------------------------
 # HISTORY FETCHER

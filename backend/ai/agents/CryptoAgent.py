@@ -5,16 +5,13 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_classic.agents import create_tool_calling_agent, AgentExecutor
 
-from ..tools.GreetUser import greet_user, user_guide
-from ..tools.CryptoPrice import (
+from ..tools.greet_user import greet_user, user_guide
+from ..tools.price import (
     get_crypto_price,
     resolve_asset,
     get_crypto_history,
-    get_crypto_signals,
-    get_crypto_trends_tool,
-    compare_crypto_trends,
 )
-from ..tools.CryptoVolume import (
+from ..tools.volume import (
     get_crypto_volume,
     get_crypto_volume_history,
     compare_crypto_volumes,
@@ -22,7 +19,7 @@ from ..tools.CryptoVolume import (
     detect_volume_spikes,
     compare_average_volumes,
 )
-from ..tools.CryptoAnalytics import (
+from ..tools.technical_analysis import (
     get_market_summary,
     detect_top_movers,
     correlate_price_volume,
@@ -30,7 +27,7 @@ from ..tools.CryptoAnalytics import (
     get_volatility,
     get_moving_average,
     get_historical_performance,
-    compare_coins,
+    compare_coins, get_crypto_signals, get_crypto_trends_tool, compare_crypto_trends,
 )
 from ..tools.ResolveDateRange import resolve_date_range, get_today_date
 from ..tools.TimeIntervalsParse import resolve_human_interval

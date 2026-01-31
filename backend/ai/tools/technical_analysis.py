@@ -1,30 +1,13 @@
-# ai/tools/CryptoAnalytics.py
+# ai/tools/technical_analysis.py
+from typing import List
 
-import requests
 from langchain_core.tools import tool
 from pydantic import BaseModel
-from utils.crypto_assets import resolve_asset_symbol
-from ai.tools.CryptoPrice import get_price_history, compute_trend, get_spot_price
-from ai.tools.CryptoVolume import get_volume_history
 
-COINBASE_API_BASE = "https://api.exchange.coinbase.com"
-REQUEST_TIMEOUT = 8
+from ai.schemas.price import CryptoHistoryInput, CryptoTrendInput, MultiCryptoInput
+from ai.services.domain_functions import get_price_history, compute_trend
+from ai.tools.volume import get_volume_history
 
-# -------------------------
-# Helper Functions
-# -------------------------
-def fetch_coinbase(endpoint: str, params: dict | None = None) -> dict:
-    url = f"{COINBASE_API_BASE}/{endpoint.lstrip('/')}"
-    try:
-        resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
-        if resp.status_code == 429:
-            return {"error": "Coinbase rate limit exceeded"}
-        resp.raise_for_status()
-        return resp.json()
-    except requests.exceptions.Timeout:
-        return {"error": "Coinbase request timed out"}
-    except requests.exceptions.RequestException as e:
-        return {"error": str(e)}
 
 def calculate_moving_average(prices: list[float], period: int) -> float:
     if not prices or period <= 0:
@@ -187,3 +170,65 @@ def compare_coins(symbols: list[str], interval: str = "days", amount: int = 7):
             f"{sym.upper()} - Trend: {trend}, Avg Volume: {avg_vol}, Latest Price: {prices[-1] if prices else 'N/A'}"
         )
     return "Coin Comparison Report:\n" + "\n".join(output)
+
+
+@tool(args_schema=CryptoHistoryInput, return_direct=True)
+def get_crypto_signals(symbol: str, interval: str = "days", amount: int = 3):
+    """Return trend signal based on historical prices."""
+    history = get_price_history(symbol.upper(), "USD", interval, amount)
+    if "error" in history:
+        return history
+
+    prices = [c["close"] for c in history["history"]]
+    return compute_trend(prices, symbol.upper())
+
+
+@tool(args_schema=CryptoTrendInput, return_direct=True)
+def get_crypto_trends_tool(symbol: str):
+    """Return short, mid, and long term trends."""
+    symbol = symbol.upper()
+
+    configs = {
+        "short_term": ("hours", 12, "Short Term (Last 12 hours)"),
+        "mid_term": ("days", 14, "Mid Term (Last 14 days)"),
+        "long_term": ("months", 12, "Long Term (Last ~12 months)"),
+    }
+
+    results = {}
+
+    for key, (interval, amount, label) in configs.items():
+        history = get_price_history(symbol, "USD", interval, amount)
+        if "error" in history:
+            results[key] = {"label": label, "trend": "unknown"}
+        else:
+            prices = [c["close"] for c in history["history"]]
+            trend = compute_trend(prices, symbol)
+            trend["label"] = label
+            results[key] = trend
+
+    return {
+        "symbol": symbol,
+        "trends": results,
+    }
+
+
+@tool(args_schema=MultiCryptoInput, return_direct=True)
+def compare_crypto_trends(symbols: List[str], interval: str = "days", amount: int = 7):
+    """Compare trends across multiple cryptocurrencies."""
+    comparison = {}
+
+    for symbol in symbols:
+        symbol = symbol.upper()
+        history = get_price_history(symbol, "USD", interval, amount)
+        if "error" in history:
+            comparison[symbol] = {"error": history["error"]}
+            continue
+
+        prices = [c["close"] for c in history["history"]]
+        comparison[symbol] = compute_trend(prices, symbol)
+
+    return {
+        "interval": interval,
+        "amount": amount,
+        "comparison": comparison,
+    }

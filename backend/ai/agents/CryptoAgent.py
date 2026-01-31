@@ -5,7 +5,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_classic.agents import create_tool_calling_agent, AgentExecutor
 
-from ..tools.GreetUser import greet_user
+from ..tools.GreetUser import greet_user, user_guide
 from ..tools.CryptoPrice import (
     get_crypto_price,
     resolve_asset,
@@ -52,6 +52,7 @@ model = ChatOpenAI(
 # -----------------------------
 tools = [
     greet_user,
+    user_guide,
     get_crypto_price,
     resolve_asset,
     get_crypto_history,

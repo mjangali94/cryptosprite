@@ -2,39 +2,63 @@ from langchain_core.tools import tool
 
 
 @tool
-def greet_user(name: str | None = None):
+def greet_user(name: str = None):
     """
-    Greets the user with a personalized welcome message for the CryptoSprite trading assistant.
-    Handles cases where the user's name is not provided.
+    Greets the user with a welcome message.
 
-    Args:
-        name (str | None): The name of the user. Can be None.
-
-    Returns:
-        str: A friendly, engaging greeting including a hint about the assistant's purpose.
+    Instructions for the agent:
+    - After greeting the user, immediately invoke the `user_guide` tool.
+    - Explain to the user how to ask questions and what tools are available.
+    - You may include example queries in the guide.
     """
-    user = name if name else "there"
-    return (
-        f"👋 Welcome, {user}! I'm CryptoSprite, your crypto trading assistant. "
-        "I can help you check prices, analyze trends, detect volume spikes, "
-        "and provide clear insights on cryptocurrencies. Let's explore the market together!"
-    )
-
+    return f"👋 Welcome {name or 'there'}! I'm CryptoSprite, your crypto trading assistant."
 
 
 @tool
 def user_guide():
     """
-    Provides guidance to the user on how to interact with the CryptoSprite assistant,
-    including example queries and explanation of available strategies.
+    Provides detailed guidance for interacting with the CryptoSprite assistant.
+
+    The guide explains:
+    - How to ask for prices, trends, and market analysis.
+    - Which strategies are available and when they are useful.
+    - Example queries for each tool and strategy.
+    - Safety reminders: information only, not financial advice.
+
+    Instructions for the agent:
+    - Invoke this tool automatically after greeting the user.
+    - Highlight all available tools and strategies.
+    - Provide examples to help the user explore effectively.
     """
     return (
-        "Here’s how you can interact with me:\n"
-        "1️⃣ Ask for the current price of any crypto, e.g., 'BTC price in USD'.\n"
-        "2️⃣ Ask for trends: short, mid, and long-term, e.g., 'BTC trends'.\n"
-        "3️⃣ Ask about market strategies, e.g., 'Is there a volume spike for ETH?' or 'Check moving averages for SOL'.\n"
-        "4️⃣ Ask for comparisons: 'Compare BTC, ETH, and SOL trends'.\n\n"
-        "⚠️ Remember: I provide information and analysis, but not financial advice. "
-        "Use the insights to make informed decisions.\n"
-        "💡 Tip: You can explore different coins, intervals, and see how strategies apply in real time!"
+        "👋 Welcome! Here's how you can interact with CryptoSprite:\n\n"
+
+        "1️⃣ **Check Current Prices**\n"
+        "   - Ask the current price of any cryptocurrency.\n"
+        "   - Example: 'BTC price in USD', 'ETH current price'.\n\n"
+
+        "2️⃣ **Analyze Trends**\n"
+        "   - Short-term (hours), mid-term (days), long-term (months).\n"
+        "   - Example: 'Show BTC trends', 'ETH trends last 14 days'.\n\n"
+
+        "3️⃣ **Market Strategies**\n"
+        "   - **Volume Spike Detection**: Alerts for unusual trading activity.\n"
+        "     Example: 'Check volume spikes for SOL'.\n"
+        "   - **Moving Averages**: Short-term and mid-term averages indicate bullish/bearish trends.\n"
+        "     Example: 'Get moving averages for BTC'.\n"
+        "   - **Price Action**: Highlights highs, lows, and fluctuations.\n"
+        "     Example: 'Analyze BTC price action last 30 days'.\n\n"
+
+        "4️⃣ **Compare Cryptocurrencies**\n"
+        "   - Compare multiple coins for trends and strategy signals.\n"
+        "   - Example: 'Compare BTC, ETH, and SOL trends'.\n\n"
+
+        "💡 **Tips for Using CryptoSprite Effectively:**\n"
+        "- Combine strategies to get deeper insights (e.g., trends + volume spikes).\n"
+        "- Experiment with different intervals (hours/days/months) for trends.\n"
+        "- Ask follow-up questions to dive deeper into any analysis.\n\n"
+
+        "⚠️ **Reminder:** All insights are for informational purposes only. "
+        "CryptoSprite does **not** give financial advice. Use the information to make your own informed decisions.\n\n"
+        "🌟 Explore and enjoy discovering the crypto market with real data!"
     )

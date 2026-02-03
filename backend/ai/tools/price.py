@@ -1,5 +1,5 @@
 from langchain_core.tools import tool
-from ai.services.domain_functions import get_spot_price, get_price_history
+from ai.domain_functions.price import get_spot_price, get_price_history
 from ai.schemas.price import CryptoPrice, ResolveSymbolInput, CryptoHistoryInput
 from utils.crypto_assets import resolve_asset_symbol
 

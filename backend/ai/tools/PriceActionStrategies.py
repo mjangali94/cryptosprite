@@ -2,10 +2,10 @@
 import math
 from typing import List, Dict
 from langchain_core.tools import tool
-from ai.services.domain_functions import get_price_history
+from ai.domain_functions.price import get_price_history
 
 from ai.domain_functions.price import get_spot_price, compute_trend
-from ai.tools.TechnicalStrategies import _get_history
+
 
 
 # -----------------------------

@@ -14,10 +14,6 @@ from ..tools.price import (
 from ..tools.volume import (
     get_crypto_volume,
     get_crypto_volume_history,
-    compare_crypto_volumes,
-    get_crypto_average_volume,
-    detect_volume_spikes,
-    compare_average_volumes,
 )
 from ..tools.technical_analysis import (
     get_market_summary,
@@ -27,11 +23,11 @@ from ..tools.technical_analysis import (
     get_volatility,
     get_moving_average,
     get_historical_performance,
-    compare_coins, get_crypto_signals, get_crypto_trends_tool, compare_crypto_trends,
+    compare_coins, get_crypto_signals, get_crypto_trends_tool, compare_crypto_trends, compare_crypto_volumes,
+    get_crypto_average_volume, detect_volume_spikes, compare_average_volumes,
 )
 from ..tools.ResolveDateRange import resolve_date_range, get_today_date
 from ..tools.TimeIntervalsParse import resolve_human_interval
-from ..tools.TechnicalStrategies import all_strategy_tools
 from ..tools.PriceActionStrategies import all_price_action_tools
 
 load_dotenv()
@@ -73,7 +69,6 @@ tools = [
     get_moving_average,
     get_historical_performance,
     compare_coins,
-    *all_strategy_tools,
     *all_price_action_tools,
 ]
 

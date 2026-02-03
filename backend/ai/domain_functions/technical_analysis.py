@@ -170,3 +170,120 @@ def compare_coins_logic(symbols: List[str], interval: str, amount: int) -> List[
             "latest_price": prices[-1] if prices else None
         })
     return output
+
+
+def calculate_rsi(symbol: str, interval: str, amount: int) -> float:
+    """
+    Calculate the Relative Strength Index (RSI) for a given cryptocurrency.
+
+    Args:
+        symbol (str): Cryptocurrency symbol, e.g., 'BTC'.
+        interval (str): Time interval for historical data ('hours', 'days', 'months').
+        amount (int): Number of periods to calculate the RSI (typically 14).
+
+    Returns:
+        float: RSI value, typically ranging from 0 to 100.
+               (Dummy logic returns a value between 40-60)
+
+    Example:
+        >>> calculate_rsi("BTC", "days", 14)
+        52.34
+    """
+    # dummy RSI logic
+    return round(50 + (hash(symbol) % 20 - 10), 2)
+
+
+def calculate_macd(symbol: str, short_term: int, long_term: int, signal: int, interval: str) -> dict:
+    """
+    Calculate the Moving Average Convergence Divergence (MACD) for a cryptocurrency.
+
+    Args:
+        symbol (str): Cryptocurrency symbol, e.g., 'BTC'.
+        short_term (int): Short-term period for MACD calculation (typically 12).
+        long_term (int): Long-term period for MACD calculation (typically 26).
+        signal (int): Signal line period (typically 9).
+        interval (str): Time interval for historical data ('hours', 'days', 'months').
+
+    Returns:
+        dict: Dictionary containing:
+            - 'macd' (float): MACD line value
+            - 'signal' (float): Signal line value
+            - 'histogram' (float): Difference between MACD and signal line
+
+    Example:
+        >>> calculate_macd("BTC", 12, 26, 9, "days")
+        {'macd': 1.23, 'signal': 0.95, 'histogram': 0.28}
+    """
+    # dummy MACD logic
+    macd_val = 1.23  # placeholder
+    signal_val = 0.95
+    histogram = macd_val - signal_val
+    return {"macd": macd_val, "signal": signal_val, "histogram": histogram}
+
+
+def calculate_bollinger_bands(symbol: str, period: int, interval: str, std_dev_multiplier: float) -> dict:
+    """
+    Calculate Bollinger Bands for a cryptocurrency.
+
+    Args:
+        symbol (str): Cryptocurrency symbol, e.g., 'BTC'.
+        period (int): Number of periods to calculate the moving average.
+        interval (str): Time interval for historical data ('hours', 'days', 'months').
+        std_dev_multiplier (float): Standard deviation multiplier for upper/lower bands (typically 2.0).
+
+    Returns:
+        dict: Dictionary containing:
+            - 'middle' (float): Middle band (moving average)
+            - 'upper' (float): Upper band
+            - 'lower' (float): Lower band
+
+    Example:
+        >>> calculate_bollinger_bands("BTC", 20, "days", 2)
+        {'middle': 1000, 'upper': 1100, 'lower': 900}
+    """
+    # dummy Bollinger Bands
+    middle_band = 1000
+    upper_band = middle_band + 2 * 50
+    lower_band = middle_band - 2 * 50
+    return {"middle": middle_band, "upper": upper_band, "lower": lower_band}
+
+
+def calculate_price_trend(symbol: str, interval: str, amount: int) -> str:
+    """
+    Determine the price trend for a cryptocurrency over a given period.
+
+    Args:
+        symbol (str): Cryptocurrency symbol, e.g., 'BTC'.
+        interval (str): Time interval for historical data ('hours', 'days', 'months').
+        amount (int): Number of intervals to evaluate.
+
+    Returns:
+        str: Trend description: 'upward', 'downward', or 'stable'.
+             (Dummy logic returns one of these based on the symbol hash)
+
+    Example:
+        >>> calculate_price_trend("BTC", "days", 7)
+        'upward'
+    """
+    trends = ["upward", "downward", "stable"]
+    return trends[hash(symbol) % 3]
+
+
+def calculate_ema(symbol: str, period: int, interval: str) -> float:
+    """
+    Calculate the Exponential Moving Average (EMA) for a cryptocurrency.
+
+    Args:
+        symbol (str): Cryptocurrency symbol, e.g., 'BTC'.
+        period (int): Number of periods for EMA calculation.
+        interval (str): Time interval for historical data ('hours', 'days', 'months').
+
+    Returns:
+        float: EMA value (dummy logic returns placeholder around 1000-1100)
+
+    Example:
+        >>> calculate_ema("BTC", 14, "days")
+        1052.0
+    """
+    # dummy EMA calculation
+    return round(1000 + (hash(symbol) % 100), 2)

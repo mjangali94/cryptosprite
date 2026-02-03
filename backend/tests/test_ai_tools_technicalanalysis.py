@@ -1,19 +1,7 @@
 # tests/test_ai_tools_technicalanalysis.py
 
 import pytest
-from ai.tools.technical_analysis import (
-    get_market_summary,
-    detect_top_movers,
-    correlate_price_volume,
-    detect_percentage_change,
-    get_volatility,
-    get_moving_average,
-    get_historical_performance,
-    compare_coins,
-    compare_crypto_volumes,
-    get_crypto_average_volume,
-    compare_average_volumes
-)
+from ai.tools.technical_analysis import *
 
 # -------------------------
 # Test Data
@@ -24,9 +12,14 @@ TEST_SYMBOL = "BTC"
 TEST_INTERVAL = "days"
 TEST_AMOUNT = 3
 TEST_THRESHOLD = 0.0  # Percentage threshold for alerts
+TEST_SHORT_TERM = 12
+TEST_LONG_TERM = 26
+TEST_SIGNAL = 9
+TEST_PERIOD = 20
+TEST_STD_DEV = 2.0
 
 # -------------------------
-# Tests
+# Existing Tests
 # -------------------------
 
 def test_get_market_summary():
@@ -118,3 +111,44 @@ def test_compare_average_volumes():
     assert "Average Volumes" in result
     for sym in TEST_SYMBOLS:
         assert sym in result
+
+
+
+
+# New Technical Indicators Tests (updated for formatted string output)
+
+def test_rsi_tool():
+    """Test RSI tool returns a formatted string with the symbol and RSI value."""
+    result = get_rsi.func(TEST_SYMBOL, TEST_INTERVAL, TEST_AMOUNT)
+    assert isinstance(result, str)
+    assert TEST_SYMBOL in result
+    assert "RSI" in result
+
+def test_macd_tool():
+    """Test MACD tool returns a formatted string including MACD, signal, and histogram."""
+    result = get_macd.func(TEST_SYMBOL, TEST_SHORT_TERM, TEST_LONG_TERM, TEST_SIGNAL, TEST_INTERVAL)
+    assert isinstance(result, str)
+    assert TEST_SYMBOL in result
+    assert "MACD Line" in result and "Signal Line" in result and "Histogram" in result
+
+def test_bollinger_bands_tool():
+    """Test Bollinger Bands tool returns a formatted string with middle, upper, and lower bands."""
+    result = get_bollinger_bands.func(TEST_SYMBOL, TEST_PERIOD, TEST_INTERVAL, TEST_STD_DEV)
+    assert isinstance(result, str)
+    assert TEST_SYMBOL in result
+    assert "Middle Band" in result and "Upper Band" in result and "Lower Band" in result
+
+def test_price_trend_tool():
+    """Test price trend tool returns a formatted string describing the trend."""
+    result = get_price_trend.func(TEST_SYMBOL, TEST_INTERVAL, TEST_AMOUNT)
+    assert isinstance(result, str)
+    assert TEST_SYMBOL in result
+    # Ensure it mentions one of the trend types
+    assert any(trend in result.lower() for trend in ["upward", "downward", "stable"])
+
+def test_ema_tool():
+    """Test EMA tool returns a formatted string including the symbol, period, and EMA value."""
+    result = get_ema.func(TEST_SYMBOL, TEST_AMOUNT, TEST_INTERVAL)
+    assert isinstance(result, str)
+    assert TEST_SYMBOL in result
+    assert "EMA" in result

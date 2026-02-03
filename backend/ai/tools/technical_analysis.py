@@ -3,23 +3,9 @@ from typing import List
 from langchain_core.tools import tool
 
 from ai.schemas.price import CryptoHistoryInput, CryptoTrendInput, MultiCryptoInput
-from ai.schemas.technical_analysis import (
-    MarketSummaryInput, TopMoversInput, PriceVolumeCorrelationInput,
-    PercentageChangeAlertInput, VolatilityOverviewInput, MovingAverageInput,
-    HistoricalPerformanceInput, CoinComparisonInput
-)
+from ai.schemas.technical_analysis import *
 from ai.schemas.volume import CompareVolumesInput, CryptoVolumeHistoryInput, CompareAverageVolumesInput
-from ai.domain_functions.technical_analysis import (
-    calculate_moving_average,
-    summarize_market,
-    detect_top_movers_logic,
-    price_volume_correlation,
-    detect_percentage_change_logic,
-    get_volatility_logic,
-    moving_average_logic,
-    historical_performance_logic,
-    compare_coins_logic
-)
+from ai.domain_functions.technical_analysis import *
 from ai.domain_functions.volume import compare_volumes, get_volume_history
 from ai.domain_functions.price import get_price_history, compute_trend
 
@@ -311,3 +297,54 @@ def compare_average_volumes(symbols: List[str], interval: str = "days", amount: 
         avg = sum(volumes)/len(volumes)
         summaries.append(f"{symbol.upper()}: Average Volume = {avg:,.2f} USD")
     return "Average Volumes:\n" + "\n".join(summaries)
+
+
+@tool(args_schema=RSIInput, return_direct=True)
+def get_rsi(symbol: str, interval: str = "days", amount: int = 14):
+    """
+    Calculate Relative Strength Index (RSI) for a cryptocurrency.
+    """
+    rsi = calculate_rsi(symbol, interval, amount)
+    return f"{symbol.upper()} RSI ({amount} periods, {interval}): {rsi}"
+
+@tool(args_schema=MACDInput, return_direct=True)
+def get_macd(symbol: str, short_term: int = 12, long_term: int = 26, signal: int = 9, interval: str = "days"):
+    """
+    Calculate MACD for a cryptocurrency.
+    """
+    macd_res = calculate_macd(symbol, short_term, long_term, signal, interval)
+    return (
+        f"{symbol.upper()} MACD ({interval}):\n"
+        f"- MACD Line: {macd_res['macd']}\n"
+        f"- Signal Line: {macd_res['signal']}\n"
+        f"- Histogram: {macd_res['histogram']}"
+    )
+
+@tool(args_schema=BollingerBandsInput, return_direct=True)
+def get_bollinger_bands(symbol: str, period: int = 20, interval: str = "days", std_dev_multiplier: float = 2.0):
+    """
+    Calculate Bollinger Bands for a cryptocurrency.
+    """
+    bb = calculate_bollinger_bands(symbol, period, interval, std_dev_multiplier)
+    return (
+        f"{symbol.upper()} Bollinger Bands ({period} periods, {interval}):\n"
+        f"- Middle Band: {bb['middle']}\n"
+        f"- Upper Band: {bb['upper']}\n"
+        f"- Lower Band: {bb['lower']}"
+    )
+
+@tool(args_schema=PriceTrendInput, return_direct=True)
+def get_price_trend(symbol: str, interval: str = "days", amount: int = 7):
+    """
+    Return simple price trend for a cryptocurrency.
+    """
+    trend = calculate_price_trend(symbol, interval, amount)
+    return f"{symbol.upper()} Price Trend over last {amount} {interval}: {trend}"
+
+@tool(args_schema=EMAInput, return_direct=True)
+def get_ema(symbol: str, period: int = 14, interval: str = "days"):
+    """
+    Calculate Exponential Moving Average (EMA) for a cryptocurrency.
+    """
+    ema = calculate_ema(symbol, period, interval)
+    return f"{symbol.upper()} EMA ({period} periods, {interval}): {ema}"

@@ -1,8 +1,10 @@
+from typing import Optional
+
 from langchain_core.tools import tool
 
 
 @tool
-def greet_user(name: str = None):
+def greet_user(name: any = None):
     """
     Greets the user with a welcome message.
 
@@ -11,7 +13,8 @@ def greet_user(name: str = None):
     - Explain to the user how to ask questions and what tools are available.
     - You may include example queries in the guide.
     """
-    return f"👋 Welcome {name or 'there'}! I'm CryptoSprite, your crypto trading assistant."
+    username = str(name) if name is not None and isinstance(name, str) else "there"
+    return f"👋 Welcome {username or 'there'}! I'm CryptoSprite, your crypto trading assistant."
 
 
 @tool

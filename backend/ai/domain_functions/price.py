@@ -38,7 +38,17 @@ def get_spot_price(symbol: str, currency: str) -> Dict:
     return {"symbol": symbol, "currency": currency, "price": price}
 
 
-def get_price_history(symbol: str, currency: str, interval: str, amount: int) -> Dict:
+from typing import Dict, List, Union
+from math import ceil
+
+# Example interval config (granularity in seconds)
+INTERVAL_CONFIG = {
+    "hours": {"granularity": 3600},     # 1 hour
+    "days": {"granularity": 86400},     # 1 day
+    "months": {"granularity": 86400},   # base granularity is daily; we'll aggregate
+}
+
+def get_price_history(symbol: str, currency: str, interval: str, amount: Union[int, float]) -> Dict:
     """
     Fetch historical OHLCV data for a cryptocurrency.
 
@@ -46,7 +56,7 @@ def get_price_history(symbol: str, currency: str, interval: str, amount: int) ->
         symbol: cryptocurrency symbol
         currency: currency for price
         interval: "hours", "days", or "months"
-        amount: number of intervals to fetch (>=1)
+        amount: number of intervals to fetch (>=1, can be fractional)
 
     Returns:
         dict: {symbol, currency, interval, points, history} or {error: str}
@@ -58,29 +68,81 @@ def get_price_history(symbol: str, currency: str, interval: str, amount: int) ->
 
     config = INTERVAL_CONFIG[interval]
     granularity = config["granularity"]
-    points = amount * config["multiplier"]
 
-    data = fetch_coinbase(f"products/{symbol}-{currency}/candles", params={"granularity": granularity})
-    if "error" in data or not isinstance(data, list):
-        return {"error": "Failed to fetch candle data"}
+    # Determine number of raw data points to fetch
+    if interval in ["hours", "days"]:
+        points = ceil(amount)
+        data = fetch_coinbase(f"products/{symbol}-{currency}/candles", params={"granularity": granularity})
+        if "error" in data or not isinstance(data, list):
+            return {"error": "Failed to fetch candle data"}
 
-    # Only take the most recent `points` and reverse to chronological order
-    candles = data[:points][::-1]
+        # Take most recent 'points' candles
+        candles = data[:points][::-1]
 
-    history: List[Dict] = [
-        {
-            "time": c[0],
-            "low": c[1],
-            "high": c[2],
-            "open": c[3],
-            "close": c[4],
-            "volume": c[5],
-        }
-        for c in candles
-    ]
+        history: List[Dict] = [
+            {
+                "time": c[0],
+                "low": c[1],
+                "high": c[2],
+                "open": c[3],
+                "close": c[4],
+                "volume": c[5],
+            }
+            for c in candles
+        ]
 
-    return {"symbol": symbol, "currency": currency, "interval": interval, "points": len(history), "history": history}
+    elif interval == "months":
+        # Fetch enough daily candles to cover the requested months
+        days_needed = ceil(amount * 30)  # rough 30 days per month
+        daily_data = fetch_coinbase(f"products/{symbol}-{currency}/candles", params={"granularity": 86400})
+        if "error" in daily_data or not isinstance(daily_data, list):
+            return {"error": "Failed to fetch daily candle data"}
 
+        # Ensure we have enough days
+        if len(daily_data) < days_needed:
+            return {"error": f"Not enough data: requested {days_needed} days, got {len(daily_data)}"}
+
+        daily_data = daily_data[:days_needed][::-1]  # most recent first -> chronological
+
+        # Aggregate into months
+        history = []
+        days_per_month = 30
+        total_months = int(amount)
+        fractional = amount - total_months
+
+        for i in range(total_months):
+            month_candles = daily_data[i*days_per_month:(i+1)*days_per_month]
+            history.append({
+                "time": month_candles[0][0],
+                "open": month_candles[0][3],
+                "close": month_candles[-1][4],
+                "high": max(c[2] for c in month_candles),
+                "low": min(c[1] for c in month_candles),
+                "volume": sum(c[5] for c in month_candles)
+            })
+
+        # Handle fractional month (if requested)
+        if fractional > 0:
+            start_idx = total_months * days_per_month
+            end_idx = start_idx + ceil(fractional * days_per_month)
+            month_candles = daily_data[start_idx:end_idx]
+            if month_candles:
+                history.append({
+                    "time": month_candles[0][0],
+                    "open": month_candles[0][3],
+                    "close": month_candles[-1][4],
+                    "high": max(c[2] for c in month_candles),
+                    "low": min(c[1] for c in month_candles),
+                    "volume": sum(c[5] for c in month_candles)
+                })
+
+    return {
+        "symbol": symbol,
+        "currency": currency,
+        "interval": interval,
+        "points": len(history),
+        "history": history
+    }
 
 def compute_trend(prices: List[float], symbol: str = "") -> Dict:
     """

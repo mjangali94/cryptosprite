@@ -2,7 +2,12 @@ from typing import List, Literal
 from pydantic import BaseModel, Field
 
 Interval = Literal["hours", "days", "months"]
-Currency = Literal["USD", "BTC", "ETH"]  # extendable
+Currency = Literal[
+    # Major fiat currencies available in Coinbase Exchange products
+    "USD",  # US Dollar
+    "EUR",  # Euro
+    "GBP",  # British Pound
+]
 
 class CryptoPrice(BaseModel):
     symbol: str = Field(..., description="Cryptocurrency symbol, e.g., 'BTC'")

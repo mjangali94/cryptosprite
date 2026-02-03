@@ -10,6 +10,7 @@ asset_symbols = {
     "SOL": "solana",
     "DOGE": "dogecoin",
     "ADA": "cardano",
+    "LTC": "litecoin",
 
     # Layer 1s
     "AVAX": "avalanche-2",

@@ -1,33 +1,22 @@
 # ai/tools/DateTools.py
-from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 from datetime import datetime, timedelta
 import re
 import dateparser
 from typing import List, Dict, Union
 
-
-# ------------------------- Schemas -------------------------
-class TodayDateInput(BaseModel):
-    """Optional placeholder input for getting today's date."""
-    pass
-
-
-class DateParseInput(BaseModel):
-    date_str: str = Field(
-        ...,
-        description=(
-            "Human-friendly date or date range "
-            "(e.g., 'yesterday', '2 weeks ago', 'last month', '2025-01-01')"
-        )
-    )
+from ai.schemas.date_range import TodayDateInput, DateParseInput
 
 
 # ------------------------- Tools -------------------------
 @tool(args_schema=TodayDateInput)
 def get_today_date() -> str:
     """
-    Returns today's date in YYYY-MM-DD format.
+    Returns today's date in ISO format (YYYY-MM-DD).
+
+    Example:
+        >>> get_today_date()
+        '2026-02-02'
     """
     return datetime.today().strftime("%Y-%m-%d")
 
@@ -35,32 +24,53 @@ def get_today_date() -> str:
 @tool(args_schema=DateParseInput)
 def resolve_date_range(date_str: str) -> Union[Dict[str, List[str]], Dict[str, str]]:
     """
-    Converts human-friendly relative dates (like 'today', '2 weeks ago', 'last 3 days', '2025-01-01')
-    into actual ISO dates (YYYY-MM-DD). Can return a list of dates for ranges.
+    Converts human-friendly date strings into actual ISO dates (YYYY-MM-DD).
+
+    Supports:
+    - Single keywords: 'today', 'yesterday'
+    - Relative past: '2 days ago', '3 weeks ago', '1 month ago'
+    - Relative range: 'last 7 days', 'last 3 weeks', 'last 2 months'
+    - Absolute dates: '2025-01-01'
+
+    Returns:
+        Dict[str, List[str]]: For successful parsing, includes the original string and list of dates.
+        Dict[str, str]: If parsing fails, returns an error message.
+
+    Examples:
+        >>> resolve_date_range("today")
+        {'original': 'today', 'dates': ['2026-02-02']}
+
+        >>> resolve_date_range("last 3 days")
+        {'original': 'last 3 days', 'dates': ['2026-01-31', '2026-02-01', '2026-02-02']}
+
+        >>> resolve_date_range("2025-01-01")
+        {'original': '2025-01-01', 'dates': ['2025-01-01']}
     """
     date_str_lower = date_str.lower().strip()
     today = datetime.today().date()
 
     def generate_past_dates(amount: int, unit: str) -> List[str]:
-        """Generates a list of past dates including today."""
+        """Generate list of past dates including today for ranges."""
         if unit == "day":
             start_date = today - timedelta(days=amount - 1)
-            return [(start_date + timedelta(days=i)).isoformat() for i in range(amount)]
         elif unit == "week":
-            start_date = today - timedelta(weeks=amount)
-            return [(start_date + timedelta(days=i)).isoformat() for i in range((today - start_date).days + 1)]
+            start_date = today - timedelta(weeks=amount - 1)
         elif unit == "month":
-            start_date = today - timedelta(days=amount * 30)
-            return [(start_date + timedelta(days=i)).isoformat() for i in range((today - start_date).days + 1)]
-        return []
+            # Approximate month as 30 days
+            start_date = today - timedelta(days=30 * (amount - 1))
+        else:
+            return []
 
-    # Keywords: today, yesterday
-    if "today" in date_str_lower:
+        num_days = (today - start_date).days + 1
+        return [(start_date + timedelta(days=i)).isoformat() for i in range(num_days)]
+
+    # Handle single keywords
+    if date_str_lower == "today":
         return {"original": date_str, "dates": [today.isoformat()]}
-    if "yesterday" in date_str_lower:
+    if date_str_lower == "yesterday":
         return {"original": date_str, "dates": [(today - timedelta(days=1)).isoformat()]}
 
-    # Relative past: "X days/weeks/months ago"
+    # Handle relative past: "X days/weeks/months ago"
     match_ago = re.search(r"(\d+)\s*(day|week|month)s?\s*ago", date_str_lower)
     if match_ago:
         amount, unit = match_ago.groups()
@@ -68,7 +78,7 @@ def resolve_date_range(date_str: str) -> Union[Dict[str, List[str]], Dict[str, s
         target_date = today - timedelta(days=delta_days)
         return {"original": date_str, "dates": [target_date.isoformat()]}
 
-    # Relative range: "last X days/weeks/months"
+    # Handle relative ranges: "last X days/weeks/months"
     match_last = re.search(r"last\s+(\d+)\s*(day|week|month)s?", date_str_lower)
     if match_last:
         amount, unit = match_last.groups()
@@ -80,4 +90,5 @@ def resolve_date_range(date_str: str) -> Union[Dict[str, List[str]], Dict[str, s
     if dt:
         return {"original": date_str, "dates": [dt.date().isoformat()]}
 
+    # Return error if parsing failed
     return {"error": f"Could not parse date string: '{date_str}'"}

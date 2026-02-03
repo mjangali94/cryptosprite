@@ -26,8 +26,8 @@ from ..tools.technical_analysis import (
     compare_coins, get_crypto_signals, get_crypto_trends_tool, compare_crypto_trends, compare_crypto_volumes,
     get_crypto_average_volume, detect_volume_spikes, compare_average_volumes,
 )
-from ..tools.ResolveDateRange import resolve_date_range, get_today_date
-from ..tools.TimeIntervalsParse import resolve_human_interval
+from ..tools.resolve_date_range import resolve_date_range, get_today_date
+from ..tools.time_intervals_parse import resolve_human_interval
 from ..tools.PriceActionStrategies import all_price_action_tools
 
 load_dotenv()

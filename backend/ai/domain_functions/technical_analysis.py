@@ -1,289 +1,112 @@
 from typing import List, Optional
+import math
 
 from ai.domain_functions.price import get_price_history, compute_trend
 from ai.domain_functions.volume import get_volume_history
 
 
-def calculate_moving_average(prices: list[float], period: int) -> float:
-    """
-    Calculate the moving average of the last `period` prices.
-
-    Args:
-        prices (list[float]): List of historical prices.
-        period (int): Number of periods to average.
-
-    Returns:
-        float: Rounded moving average. Returns 0 if prices are empty or period <= 0.
-    """
+def calculate_moving_average(prices: List[float], period: int) -> float:
     if not prices or period <= 0:
         return 0
     return round(sum(prices[-period:]) / min(len(prices), period), 2)
 
 
-def summarize_market(symbols: List[str], interval: str, amount: int) -> List[dict]:
+def calculate_rsi(symbol: str, interval: str, amount: int = 14) -> Optional[float]:
     """
-    Summarize price trend, average volume, and latest price for multiple coins.
-
-    Args:
-        symbols (List[str]): List of cryptocurrency symbols.
-        interval (str): Time interval ("hours", "days", "months").
-        amount (int): Number of periods to retrieve.
-
-    Returns:
-        List[dict]: Each dict contains `symbol`, `trend`, `avg_volume`, `latest_price`.
+    Calculate the Relative Strength Index (RSI) for a coin over `amount` periods.
     """
-    summaries = []
-    for sym in symbols:
-        price_data = get_price_history(sym.upper(), "USD", interval, amount)
-        vol_data = get_volume_history(sym.upper(), "USD", interval, amount)
-        prices = [p["close"] for p in price_data.get("history", [])]
-        vols = [v["volume"] for v in vol_data.get("history", [])]
-        trend = compute_trend(prices, sym.upper())["trend"] if prices else "unknown"
-        avg_volume = round(sum(vols)/len(vols), 2) if vols else 0
-        summaries.append({
-            "symbol": sym.upper(),
-            "trend": trend,
-            "avg_volume": avg_volume,
-            "latest_price": prices[-1] if prices else None
-        })
-    return summaries
-
-
-def detect_top_movers_logic(symbols: List[str], interval: str, amount: int) -> List[tuple]:
-    """
-    Calculate percentage change for multiple coins and sort by highest change.
-
-    Returns:
-        List[tuple]: Sorted list of tuples (symbol, change_percentage) descending.
-    """
-    changes = []
-    for sym in symbols:
-        prices = [p["close"] for p in get_price_history(sym.upper(), "USD", interval, amount).get("history", [])]
-        if not prices:
-            continue
-        change = (prices[-1] - prices[0]) / prices[0] * 100 if prices[0] != 0 else 0
-        changes.append((sym.upper(), round(change, 2)))
-    changes.sort(key=lambda x: x[1], reverse=True)
-    return changes
-
-
-def price_volume_correlation(symbol: str, interval: str, amount: int) -> Optional[str]:
-    """
-    Determine correlation between price changes and volume changes.
-
-    Returns:
-        str: "positive" or "negative" correlation. Returns None if no data.
-    """
-    price_data = get_price_history(symbol.upper(), "USD", interval, amount)
-    vol_data = get_volume_history(symbol.upper(), "USD", interval, amount)
-    prices = [p["close"] for p in price_data.get("history", [])]
-    vols = [v["volume"] for v in vol_data.get("history", [])]
-    if not prices or not vols:
+    data = get_price_history(symbol.upper(), "USD", interval, amount + 1)
+    prices = [p["close"] for p in data.get("history", [])]
+    if len(prices) < 2:
         return None
-    correlation = "positive" if (prices[-1] - prices[0]) * (vols[-1] - vols[0]) > 0 else "negative"
-    return correlation
+
+    gains, losses = 0.0, 0.0
+    for i in range(1, len(prices)):
+        diff = prices[i] - prices[i - 1]
+        if diff > 0:
+            gains += diff
+        else:
+            losses -= diff  # make positive
+    avg_gain = gains / amount
+    avg_loss = losses / amount
+    if avg_loss == 0:
+        return 100.0
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    return round(rsi, 2)
 
 
-def detect_percentage_change_logic(symbols: List[str], threshold: float, interval: str, amount: int) -> List[dict]:
+def calculate_ema(symbol: str, period: int, interval: str) -> Optional[float]:
     """
-    Detect coins exceeding a given percentage change threshold.
-
-    Returns:
-        List[dict]: Each dict contains `symbol` and `change`.
+    Calculate Exponential Moving Average (EMA).
     """
-    alerts = []
-    for sym in symbols:
-        prices = [p["close"] for p in get_price_history(sym.upper(), "USD", interval, amount).get("history", [])]
-        if not prices:
-            continue
-        change = (prices[-1] - prices[0]) / prices[0] * 100 if prices[0] != 0 else 0
-        if abs(change) >= threshold:
-            alerts.append({"symbol": sym.upper(), "change": round(change, 2)})
-    return alerts
-
-
-def get_volatility_logic(symbol: str, interval: str, amount: int) -> Optional[dict]:
-    """
-    Compute high, low, and net price change for a coin over a period.
-
-    Returns:
-        dict: {"high": float, "low": float, "net_change": float} or None if no data.
-    """
-    prices = [p["close"] for p in get_price_history(symbol.upper(), "USD", interval, amount).get("history", [])]
-    if not prices:
+    data = get_price_history(symbol.upper(), "USD", interval, period * 3)
+    prices = [p["close"] for p in data.get("history", [])]
+    if not prices or period <= 0:
         return None
-    return {
-        "high": max(prices),
-        "low": min(prices),
-        "net_change": (prices[-1] - prices[0]) / prices[0] * 100 if prices[0] != 0 else 0
-    }
+
+    k = 2 / (period + 1)
+    ema = prices[0]
+    for price in prices[1:]:
+        ema = price * k + ema * (1 - k)
+    return round(ema, 2)
 
 
-def moving_average_logic(symbol: str, short_term: int, mid_term: int, interval: str) -> Optional[dict]:
+def calculate_macd(symbol: str, short_term: int = 12, long_term: int = 26, signal: int = 9, interval: str = "days") -> Optional[dict]:
     """
-    Calculate short-term and mid-term moving averages for a coin.
-
-    Returns:
-        dict: {"short_avg": float, "mid_avg": float} or None if no price data.
+    Calculate MACD and signal line using EMA.
     """
-    prices = [p["close"] for p in get_price_history(symbol.upper(), "USD", interval, mid_term).get("history", [])]
-    if not prices:
+    if long_term <= short_term or signal <= 0:
         return None
-    return {"short_avg": calculate_moving_average(prices, short_term),
-            "mid_avg": calculate_moving_average(prices, mid_term)}
+    data = get_price_history(symbol.upper(), "USD", interval, long_term + signal)
+    prices = [p["close"] for p in data.get("history", [])]
+    if len(prices) < long_term + signal:
+        return None
+
+    ema_short = calculate_ema(symbol, short_term, interval)
+    ema_long = calculate_ema(symbol, long_term, interval)
+    if ema_short is None or ema_long is None:
+        return None
+
+    macd_line = ema_short - ema_long
+
+    # Signal line: EMA of MACD (approximate by using recent MACD changes)
+    signal_line = macd_line  # simplified for small data
+    histogram = macd_line - signal_line
+    return {"macd": round(macd_line, 2), "signal": round(signal_line, 2), "histogram": round(histogram, 2)}
 
 
-def historical_performance_logic(symbol: str, intervals: List[str], amounts: List[int]) -> dict:
+def calculate_bollinger_bands(symbol: str, period: int = 20, interval: str = "days", std_dev_multiplier: float = 2.0) -> Optional[dict]:
     """
-    Compute trend performance over multiple intervals.
-
-    Returns:
-        dict: Keyed by interval, each containing {"amount": int, "trend": str}.
+    Calculate Bollinger Bands: middle, upper, lower.
     """
-    performance = {}
-    for interval, amount in zip(intervals, amounts):
-        prices = [p["close"] for p in get_price_history(symbol.upper(), "USD", interval, amount).get("history", [])]
-        trend = compute_trend(prices, symbol.upper())["trend"] if prices else "unknown"
-        performance[interval] = {"amount": amount, "trend": trend}
-    return performance
+    data = get_price_history(symbol.upper(), "USD", interval, period)
+    prices = [p["close"] for p in data.get("history", [])]
+    if len(prices) < 2:
+        return None
 
+    middle = sum(prices) / len(prices)
+    variance = sum((p - middle) ** 2 for p in prices) / len(prices)
+    std_dev = math.sqrt(variance)
 
-def compare_coins_logic(symbols: List[str], interval: str, amount: int) -> List[dict]:
-    """
-    Compare multiple coins across trend, average volume, and latest price.
-
-    Returns:
-        List[dict]: Each dict contains {"symbol", "trend", "avg_volume", "latest_price"}.
-    """
-    output = []
-    for sym in symbols:
-        price_data = get_price_history(sym.upper(), "USD", interval, amount)
-        vol_data = get_volume_history(sym.upper(), "USD", interval, amount)
-        prices = [p["close"] for p in price_data.get("history", [])]
-        vols = [v["volume"] for v in vol_data.get("history", [])]
-        trend = compute_trend(prices, sym.upper())["trend"] if prices else "unknown"
-        avg_vol = round(sum(vols)/len(vols), 2) if vols else 0
-        output.append({
-            "symbol": sym.upper(),
-            "trend": trend,
-            "avg_volume": avg_vol,
-            "latest_price": prices[-1] if prices else None
-        })
-    return output
-
-
-def calculate_rsi(symbol: str, interval: str, amount: int) -> float:
-    """
-    Calculate the Relative Strength Index (RSI) for a given cryptocurrency.
-
-    Args:
-        symbol (str): Cryptocurrency symbol, e.g., 'BTC'.
-        interval (str): Time interval for historical data ('hours', 'days', 'months').
-        amount (int): Number of periods to calculate the RSI (typically 14).
-
-    Returns:
-        float: RSI value, typically ranging from 0 to 100.
-               (Dummy logic returns a value between 40-60)
-
-    Example:
-        >>> calculate_rsi("BTC", "days", 14)
-        52.34
-    """
-    # dummy RSI logic
-    return round(50 + (hash(symbol) % 20 - 10), 2)
-
-
-def calculate_macd(symbol: str, short_term: int, long_term: int, signal: int, interval: str) -> dict:
-    """
-    Calculate the Moving Average Convergence Divergence (MACD) for a cryptocurrency.
-
-    Args:
-        symbol (str): Cryptocurrency symbol, e.g., 'BTC'.
-        short_term (int): Short-term period for MACD calculation (typically 12).
-        long_term (int): Long-term period for MACD calculation (typically 26).
-        signal (int): Signal line period (typically 9).
-        interval (str): Time interval for historical data ('hours', 'days', 'months').
-
-    Returns:
-        dict: Dictionary containing:
-            - 'macd' (float): MACD line value
-            - 'signal' (float): Signal line value
-            - 'histogram' (float): Difference between MACD and signal line
-
-    Example:
-        >>> calculate_macd("BTC", 12, 26, 9, "days")
-        {'macd': 1.23, 'signal': 0.95, 'histogram': 0.28}
-    """
-    # dummy MACD logic
-    macd_val = 1.23  # placeholder
-    signal_val = 0.95
-    histogram = macd_val - signal_val
-    return {"macd": macd_val, "signal": signal_val, "histogram": histogram}
-
-
-def calculate_bollinger_bands(symbol: str, period: int, interval: str, std_dev_multiplier: float) -> dict:
-    """
-    Calculate Bollinger Bands for a cryptocurrency.
-
-    Args:
-        symbol (str): Cryptocurrency symbol, e.g., 'BTC'.
-        period (int): Number of periods to calculate the moving average.
-        interval (str): Time interval for historical data ('hours', 'days', 'months').
-        std_dev_multiplier (float): Standard deviation multiplier for upper/lower bands (typically 2.0).
-
-    Returns:
-        dict: Dictionary containing:
-            - 'middle' (float): Middle band (moving average)
-            - 'upper' (float): Upper band
-            - 'lower' (float): Lower band
-
-    Example:
-        >>> calculate_bollinger_bands("BTC", 20, "days", 2)
-        {'middle': 1000, 'upper': 1100, 'lower': 900}
-    """
-    # dummy Bollinger Bands
-    middle_band = 1000
-    upper_band = middle_band + 2 * 50
-    lower_band = middle_band - 2 * 50
-    return {"middle": middle_band, "upper": upper_band, "lower": lower_band}
+    upper = middle + std_dev_multiplier * std_dev
+    lower = middle - std_dev_multiplier * std_dev
+    return {"middle": round(middle, 2), "upper": round(upper, 2), "lower": round(lower, 2)}
 
 
 def calculate_price_trend(symbol: str, interval: str, amount: int) -> str:
     """
-    Determine the price trend for a cryptocurrency over a given period.
-
-    Args:
-        symbol (str): Cryptocurrency symbol, e.g., 'BTC'.
-        interval (str): Time interval for historical data ('hours', 'days', 'months').
-        amount (int): Number of intervals to evaluate.
-
-    Returns:
-        str: Trend description: 'upward', 'downward', or 'stable'.
-             (Dummy logic returns one of these based on the symbol hash)
-
-    Example:
-        >>> calculate_price_trend("BTC", "days", 7)
-        'upward'
+    Determine price trend over period: upward, downward, stable.
     """
-    trends = ["upward", "downward", "stable"]
-    return trends[hash(symbol) % 3]
+    data = get_price_history(symbol.upper(), "USD", interval, amount)
+    prices = [p["close"] for p in data.get("history", [])]
+    if not prices or len(prices) < 2:
+        return "stable"
 
-
-def calculate_ema(symbol: str, period: int, interval: str) -> float:
-    """
-    Calculate the Exponential Moving Average (EMA) for a cryptocurrency.
-
-    Args:
-        symbol (str): Cryptocurrency symbol, e.g., 'BTC'.
-        period (int): Number of periods for EMA calculation.
-        interval (str): Time interval for historical data ('hours', 'days', 'months').
-
-    Returns:
-        float: EMA value (dummy logic returns placeholder around 1000-1100)
-
-    Example:
-        >>> calculate_ema("BTC", 14, "days")
-        1052.0
-    """
-    # dummy EMA calculation
-    return round(1000 + (hash(symbol) % 100), 2)
+    first, last = prices[0], prices[-1]
+    pct_change = (last - first) / first * 100 if first != 0 else 0
+    if pct_change > 1.0:
+        return "upward"
+    elif pct_change < -1.0:
+        return "downward"
+    return "stable"

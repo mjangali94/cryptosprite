@@ -21,3 +21,4 @@ pytest-asyncio
 httpx
 pytest-mock
 dateparser
+langgraph

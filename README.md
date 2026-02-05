@@ -6,7 +6,7 @@ It combines **live price data**, **technical indicators**, **volume analytics**,
 > ⚠️ CryptoSprite is for research, experimentation, and educational purposes only.  
 > **Not financial advice.**
 
----
+
 
 ## ✨ Key Features
 
@@ -44,7 +44,6 @@ It combines **live price data**, **technical indicators**, **volume analytics**,
 - Multi-step reasoning using real market data
 - Strategy-aware responses
 
----
 
 
 ## 🛠️ Tech Stack
@@ -56,7 +55,6 @@ It combines **live price data**, **technical indicators**, **volume analytics**,
 - **Pydantic**
 - **Pytest**
 
----
 
 ## ⚙️ Installation
 
@@ -86,7 +84,6 @@ OPENAI_API_KEY=your_api_key_here
 uvicorn main:app --reload
 ```
 
----
 
 ## 🔌 API Usage
 
@@ -109,7 +106,6 @@ POST /api/crypto_agent
 }
 ```
 
----
 
 ## 🧪 Running Tests
 
@@ -123,7 +119,6 @@ Tests are **prompt-driven** and focus on:
 - Tool routing behavior
 - Output generation (not correctness of predictions)
 
----
 
 ## 🧠 Prompt Examples
 
@@ -152,7 +147,7 @@ Here are 20 example prompts you can try with CryptoSprite:
 
 
 These prompts can be fed directly to the agent to test different strategies, price patterns, and market insights.
----
+
 
 ## 🚧 Project Status
 
@@ -170,7 +165,7 @@ These prompts can be fed directly to the agent to test different strategies, pri
 - Agent memory & session context
 - Multi-asset comparison agent
 
----
+
 
 ## ⚠️ Disclaimer
 
@@ -183,14 +178,14 @@ All outputs are:
 
 You are fully responsible for any decisions you make.
 
----
+
 
 ## 👤 Author
 
 Mostafa Jangali  
 GitHub: https://github.com/mjangali94
 
----
+
 
 ## ⭐ Contributing
 
@@ -204,5 +199,4 @@ If you’re experimenting with:
 
 Feel free to open an issue or PR.
 
----
 

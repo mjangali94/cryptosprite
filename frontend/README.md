@@ -1,36 +1,157 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CryptoSprite Frontend
+
+This is the frontend application for **CryptoSprite**, an AI-powered cryptocurrency market analysis agent.
+
+The UI is intentionally minimal and focused: a single **chat interface** for interacting with the CryptoSprite agent — no dashboards, no charts, no manual controls.
+
+
+## Tech Stack
+
+- Next.js (App Router)
+- TypeScript
+- Tailwind CSS
+- Fetch-based API client
+- Agent-driven UX
+
+---
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies:
+
+```bash
+npm install
+```
+
+or
+```bash
+yarn
+```
+
+or
+
+```bash
+pnpm install
+```
+
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+or
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+yarn dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+or
 
-## Learn More
+```bash
+pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open the app in your browser:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+http://localhost:3000
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+src/
+├── app/
+│   └── page.tsx
+├── components/
+│   ├── Header.tsx
+│   ├── AgentMessage.tsx
+│   ├── MessageList.tsx
+│   ├── ChatInput.tsx
+│   └── TypingIndicator.tsx
+├── hooks/
+│   └── useChat.ts
+└── api/
+    └── chat.ts
+
+
+
+## How It Works
+
+1. The user types a message into the chat input
+2. The message is sent to the backend CryptoSprite agent
+3. The agent:
+   - Detects intent
+   - Selects tools (price, volume, indicators, price action)
+   - Runs a structured analysis
+4. The final response is returned as natural language
+5. The UI renders the response as a chat message
+
+The frontend does **not** control logic — the agent does.
+
+
+
+## Backend Dependency
+
+This frontend expects the CryptoSprite backend to be running.
+
+Endpoint:
+
+```bash
+POST /api/crypto_agent
+```
+
+Request body example:
+
+```bash
+{
+  "query": "Analyze BTC using price action and technical indicators"
+}
+```
+
+Response example:
+
+```bash
+{
+  "result": "Full market analysis text..."
+}
+```
+
+
+## Customization
+
+You can customize behavior and appearance here:
+
+- components/AgentMessage.tsx  
+  Controls chat bubble styling
+
+- components/Header.tsx  
+  App title and header layout
+
+- components/ChatInput.tsx  
+  Input UX and submit behavior
+
+- hooks/useChat.ts  
+  Chat state management and API calls
+
+
+## Design Philosophy
+
+CryptoSprite follows an **agent-first** design:
+
+- No buttons
+- No toggles
+- No manual indicators
+- No opinionated UI logic
+
+The agent decides everything.
+
+The UI simply listens.
+
+
+
+## Status
+
+CryptoSprite Frontend v1.0  
+Production-ready minimal chat interface

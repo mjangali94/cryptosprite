@@ -6,11 +6,9 @@ langchain-openai
 chromadb
 python-dotenv
 bs4
-wikipedia
 firecrawl
 langchain-ollama
 faiss-cpu
-duckduckgo-search
 requests
 fastapi
 uvicorn

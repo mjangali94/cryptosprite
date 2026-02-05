@@ -113,7 +113,7 @@ POST /api/crypto_agent
 
 ## 🧪 Running Tests
 
-# Run pytest in verbose mode
+Run pytest in verbose mode
 ``` bash
 pytest -v -s
 ```

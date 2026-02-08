@@ -86,41 +86,122 @@ ALL_TOOLS = {t.name: t for t in TOOLS}
 # -----------------------------
 def router(query: str):
     """
-    Keyword-driven smart router.
-    Selects only relevant tools per query.
+    Smarter intent-aware router.
+    Selects relevant tools based on explicit + implicit intent.
     """
+
     q = query.lower()
     selected = []
 
     def use(*names):
         for n in names:
-            if n in ALL_TOOLS:
-                selected.append(ALL_TOOLS[n])
+            tool = ALL_TOOLS.get(n)
+            if tool:
+                selected.append(tool)
 
-    # Greeting / onboarding
-    if any(k in q for k in ["hi", "hello", "help", "guide", "how to use"]):
+    # -----------------------------
+    # INTENT DETECTION
+    # -----------------------------
+
+    greeting_intent = any(k in q for k in [
+        "hi", "hello", "hey", "help", "guide", "how do i", "how to use"
+    ])
+
+    asset_intent = any(k in q for k in [
+        "btc", "bitcoin", "eth", "ethereum",
+        "sol", "xrp", "coin", "token", "crypto"
+    ])
+
+    time_intent = any(k in q for k in [
+        "today", "now", "current",
+        "yesterday", "last week", "last month",
+        "past", "previous", "historical"
+    ])
+
+    price_intent = any(k in q for k in [
+        "price", "value", "worth", "cost", "trading at"
+    ])
+
+    volume_intent = any(k in q for k in [
+        "volume", "liquidity", "trading activity", "flow"
+    ])
+
+    indicator_intent = any(k in q for k in [
+        "technical", "indicator", "momentum", "trend",
+        "rsi", "ema", "sma", "macd", "bollinger",
+        "overbought", "oversold", "divergence"
+    ])
+
+    price_action_intent = any(k in q for k in [
+        "price action",
+        "support", "resistance",
+        "breakout", "break down",
+        "range", "structure",
+        "trendline",
+        "higher high", "lower low",
+        "pattern", "flag", "triangle",
+        "candlestick", "wick", "rejection"
+    ])
+
+    comparison_intent = any(k in q for k in [
+        "compare", "vs", "versus",
+        "better than", "top movers",
+        "gainers", "losers"
+    ])
+
+    sentiment_intent = any(k in q for k in [
+        "bullish", "bearish",
+        "buy", "sell",
+        "long", "short",
+        "good time", "bad time"
+    ])
+
+    # -----------------------------
+    # GREETING / ONBOARDING
+    # -----------------------------
+
+    if greeting_intent:
         use("greet_user", "user_guide")
 
-    # Asset / date understanding
-    if any(k in q for k in ["btc", "eth", "coin", "token", "crypto"]):
+    # -----------------------------
+    # ASSET & TIME RESOLUTION
+    # -----------------------------
+
+    if asset_intent:
         use("resolve_asset")
 
-    if any(k in q for k in ["today", "yesterday", "last week", "last month", "past"]):
-        use("resolve_date_range", "resolve_human_interval", "get_today_date")
+    if time_intent:
+        use(
+            "resolve_date_range",
+            "resolve_human_interval",
+            "get_today_date"
+        )
 
-    # Price & history
-    if any(k in q for k in ["price", "value", "worth", "historical", "history"]):
-        use("get_crypto_price", "get_crypto_history")
+    # -----------------------------
+    # PRICE & HISTORY
+    # -----------------------------
 
-    # Volume
-    if any(k in q for k in ["volume", "liquidity", "trading activity"]):
-        use("get_crypto_volume", "get_crypto_volume_history")
+    if price_intent:
+        use(
+            "get_crypto_price",
+            "get_crypto_history"
+        )
 
-    # Technical indicators
-    if any(k in q for k in [
-        "technical", "indicator", "trend",
-        "rsi", "ema", "macd", "bollinger",
-    ]):
+    # -----------------------------
+    # VOLUME
+    # -----------------------------
+
+    if volume_intent:
+        use(
+            "get_crypto_volume",
+            "get_crypto_volume_history"
+        )
+
+    # -----------------------------
+    # TECHNICAL INDICATORS
+    # -----------------------------
+
+    if indicator_intent or sentiment_intent:
         use(
             "get_market_summary",
             "get_price_trend",
@@ -128,45 +209,48 @@ def router(query: str):
             "get_ema",
             "get_macd",
             "get_bollinger_bands",
-            "correlate_price_volume",
+            "correlate_price_volume"
         )
 
-    # Comparisons / movers
-    if any(k in q for k in ["top movers", "gainers", "losers", "compare"]):
-        use("detect_top_movers", "get_market_summary")
+    # -----------------------------
+    # PRICE ACTION (STRUCTURE FIRST)
+    # -----------------------------
 
-    # PRICE ACTION (explicit and implicit triggers)
-    if any(k in q for k in [
-        "price action",
-        "support",
-        "resistance",
-        "breakout",
-        "break down",
-        "range",
-        "structure",
-        "trendline",
-        "higher high",
-        "lower low",
-        "pattern",
-        "candlestick",
-        "rejection",
-    ]):
-        selected.extend(all_price_action_tools)
+    if price_action_intent or sentiment_intent:
+        for t in all_price_action_tools:
+            selected.append(t)
 
-    # Fallback
+    # -----------------------------
+    # COMPARISONS / MOVERS
+    # -----------------------------
+
+    if comparison_intent:
+        use(
+            "detect_top_movers",
+            "get_market_summary"
+        )
+
+    # -----------------------------
+    # FALLBACK SAFETY NET
+    # -----------------------------
+
     if not selected:
         use("get_market_summary")
 
-    # Deduplicate
+    # -----------------------------
+    # DEDUPLICATION (SAFE)
+    # -----------------------------
+
     deduped = []
     seen = set()
+
     for t in selected:
-        if t.name not in seen:
+        name = getattr(t, "name", None)
+        if name and name not in seen:
             deduped.append(t)
-            seen.add(t.name)
+            seen.add(name)
 
     return deduped
-
 # -----------------------------
 # PROMPT (PRICE-ACTION AWARE)
 # -----------------------------
